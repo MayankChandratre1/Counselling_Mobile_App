@@ -7,7 +7,7 @@ interface College {
   instituteCode: string;
   branchCode: string;
   branchName: string;
-  category: string;
+  Category: string;
   rank: number;
   percentile: number;
   city: string;
@@ -17,24 +17,44 @@ const Colleges = () => {
   const [colleges, setColleges] = useState<College[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [lastDocId, setLastDocId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchColleges();
-  }, []);
-
-  const fetchColleges = async () => {
+  const fetchColleges = async (pageNumber: number) => {
     try {
-      const response = await fetch('http://10.0.2.2:3001/api/colleges/');
-      console.log(response);
-      
+      const response = await fetch(
+        `http://10.0.2.2:3002/api/cutoffs?page=${pageNumber}&limit=10${lastDocId ? `&lastDocId=${lastDocId}` : ''}`
+      );
       const data = await response.json();
-      setColleges(data);
+      
+      setHasMore(data.hasMore);
+      setLastDocId(data.nextPageId);
+
+      if (pageNumber === 1) {
+        setColleges(data.cutoffs);
+      } else {
+        if(data.cutoffs.length > 0) {
+          setColleges(prev => [...prev, ...data.cutoffs]);
+        }
+      }
+      
       setLoading(false);
     } catch (err) {
-        console.log(err);
-        
+      console.log(err);
       setError('Failed to fetch colleges');
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchColleges(1);
+  }, []);
+
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+      fetchColleges(page + 1);
     }
   };
 
@@ -55,14 +75,14 @@ const Colleges = () => {
       <View style={styles.cell}><Text style={styles.cellText}>{item.instituteCode}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.instituteName}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.branchName}</Text></View>
-      <View style={styles.cell}><Text style={styles.cellText}>{item.category}</Text></View>
+      <View style={styles.cell}><Text style={styles.cellText}>{item.Category}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.rank}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.percentile.toFixed(2)}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.city}</Text></View>
     </View>
   );
 
-  if (loading) {
+  if (loading && page === 1) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -86,6 +106,15 @@ const Colleges = () => {
           data={colleges}
           renderItem={renderItem}
           keyExtractor={item => item.id}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loading ? (
+              <View style={styles.footer}>
+                <ActivityIndicator size="large" color="#371981" />
+              </View>
+            ) : null
+          }
         />
       </View>
     </ScrollView>
@@ -146,5 +175,9 @@ const styles = StyleSheet.create({
   error: {
     color: 'red',
     fontSize: 16,
-  }
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+  },
 });
