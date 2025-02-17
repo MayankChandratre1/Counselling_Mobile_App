@@ -2,6 +2,7 @@ import { StyleSheet, View, FlatList, ActivityIndicator, Text, TextInput, Touchab
 import React, { useEffect, useState } from 'react'
 import CollegeCard from './CollegeCard'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
+import config from '../../configs/API';
 
 interface College {
   id: string;
@@ -9,6 +10,8 @@ interface College {
   city: string;
   image?: string;
 }
+
+const {COLLEGE_API} = config;
 
 const CollegeList = ({ navigation }: any) => {
   const [colleges, setColleges] = useState<College[]>([]);
@@ -23,7 +26,7 @@ const CollegeList = ({ navigation }: any) => {
   const fetchColleges = async (pageNumber: number) => {
     try {
       const response = await fetch(
-        `http://10.0.2.2:3002/api/colleges?page=${pageNumber}&limit=10&lastDocId=${lastDocId || ''}`
+        `${COLLEGE_API}/colleges?page=${pageNumber}&limit=10&lastDocId=${lastDocId || ''}`
       );
       const data = await response.json();
 
@@ -63,7 +66,7 @@ const CollegeList = ({ navigation }: any) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://10.0.2.2:3002/api/colleges/search?instituteName=${encodeURIComponent(searchQuery)}&page=${pageNumber}&limit=5`
+        `${COLLEGE_API}/colleges/search?instituteName=${encodeURIComponent(searchQuery)}&page=${pageNumber}&limit=5`
       );
       const data = await response.json();
       

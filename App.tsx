@@ -7,12 +7,16 @@ import TabNavigator from './navigation/TabNavigator';
 import { getUserData } from './utils/storage';
 import { ActivityIndicator, View } from 'react-native';
 import { SplashScreen } from './pages/Splash';
+import Notification from './pages/Notification';
+import PremiumButton from './components/General/PremiumButton';
 
 const Stack = createNativeStackNavigator();
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     checkLoginStatus();
@@ -22,43 +26,51 @@ const App = () => {
     const userData = await getUserData();
     setIsLoggedIn(!!userData);
     setIsLoading(false);
+    setIsPremium(userData?.isPremium);
   };
 
-  if (isLoading) {
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  if (isLoading || showSplash) {
     return (
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Splash" component={SplashScreen} /> 
-        </Stack.Navigator>
+        <SplashScreen onFinish={handleSplashFinish} />
       </NavigationContainer>
     );
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator 
-        screenOptions={{ 
-          headerShown: false,  // This ensures headers are hidden everywhere
-          animation: 'none'    // Optional: removes transition animations
-        }}
-      >
-        {!isLoggedIn ? (
-          <>
-            <Stack.Screen 
-              name="Onboarding" 
-              component={OnboardingScreen} 
-              initialParams={{ step: 1 }}
-            />
-            <Stack.Screen name="Login" component={LoginScreen} />
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator 
+          screenOptions={{ 
+            headerShown: false,  // This ensures headers are hidden everywhere
+            animation: 'none'    // Optional: removes transition animations
+          }}
+        >
+          {!isLoggedIn ? (
+            <>
+              <Stack.Screen 
+                name="Onboarding" 
+                component={OnboardingScreen} 
+                initialParams={{ step: 1 }}
+              />
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Home" component={TabNavigator} />
+              <Stack.Screen name="Notification" component={Notification} />
+            </>
+          ) : (
+            <>
             <Stack.Screen name="Home" component={TabNavigator} />
-          </>
-        ) : (
-          <>
-          <Stack.Screen name="Home" component={TabNavigator} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          </>
-        )}
-      </Stack.Navigator>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Notification" component={Notification} />
+            </>
+          )}
+        </Stack.Navigator>
+        {isLoggedIn && !isPremium && <PremiumButton />}
+      </View>
     </NavigationContainer>
   );
 };

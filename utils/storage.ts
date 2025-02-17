@@ -1,8 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const storeUserData = async (userData: { name: string; phone: string }) => {
+interface UserData {
+  name: string;
+  phone: string;
+  isPremium: boolean;
+  state?: string;
+  field?: string;
+  jeeMarks?: string;
+  cetMarks?: string;
+}
+
+export const storeUserData = async (userData: Partial<UserData>) => {
   try {
-    await AsyncStorage.setItem('userData', JSON.stringify(userData));
+    const existingData = await getUserData();
+    await AsyncStorage.setItem('userData', JSON.stringify({
+      ...existingData,
+      ...userData,
+      isPremium: existingData?.isPremium || false,
+    }));
     return true;
   } catch (error) {
     console.error('Error saving user data:', error);

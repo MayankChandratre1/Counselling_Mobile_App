@@ -6,6 +6,14 @@ import FontAwesome from "react-native-vector-icons/FontAwesome"
 import Feather from "react-native-vector-icons/Feather"
 import CollegeCard from '../components/Colleges/CollegeCard'
 
+// Remove these imports as they're not needed in Home
+// import { NavigationContainer } from '@react-navigation/native';
+// import { createNativeStackNavigator } from '@react-navigation/native-stack'
+// import Notification from './Notification'
+
+// Remove this as it's not needed here
+// const Stack = createNativeStackNavigator();
+
 const SectionsNav = ({ navigation }: { navigation: any }) => (
   <View style={styles.sectionsContainer}>
     <Text style={styles.sectionTitle}>Sections</Text>
@@ -62,14 +70,17 @@ const Home = ({navigation}:any) => {
                 </View>
                 <TouchableOpacity style={styles.notificationIcon}>
                     <Feather name="bell" size={24} color="#000" />
-                </TouchableOpacity>+
+                </TouchableOpacity>
             </View>
 
-            <View style={styles.updateContainer}>
+            <TouchableOpacity 
+                style={styles.updateContainer}
+                onPress={() => navigation.navigate('Notification')}
+            >
                 <Text style={styles.updateText}>
-                     New Video on Yash Aradhye Youtube Channel
+                    New Video on Yash Aradhye Youtube Channel
                 </Text>
-            </View>
+            </TouchableOpacity>
 
             <View style={{ height: 250 }}>
                 <UpdateSlider />

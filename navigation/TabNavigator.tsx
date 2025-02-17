@@ -1,11 +1,14 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { View, Text, StyleSheet } from 'react-native';
 import Home from '../pages/Home';
 import Colleges from '../components/Colleges';
 import Profile from '../pages/Profile';
 import Counselling from '../pages/Counselling';
 import Browse from '../pages/Browse';
+import React from 'react';
+import { getUserData } from '../utils/storage';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,101 +28,105 @@ const CustomTabBarIcon = ({ focused, icon, label }: { focused: boolean; icon: st
         focused && styles.tabItemActive
         
     ]}>
-    <FontAwesome 
-      name={icon} 
-      size={30} 
-      color={focused ? '#fff' : '#cdcfcf'} 
-    />
-    {/* <Text style={[
-      styles.tabLabel,
-      focused && styles.tabLabelActive
-    ]}>
-      {label}
-    </Text> */}
+    {
+      icon == 'crown' ? (
+        <FontAwesome6
+        name={icon} 
+        size={30} 
+        color={focused ? '#fff' : '#cdcfcf'} 
+      />
+      ):(<FontAwesome 
+        name={icon} 
+        size={30} 
+        color={focused ? '#fff' : '#cdcfcf'} 
+      />)
+    }
+    
     </View>
   </View>
 );
 
 const TabNavigator = () => {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarStyle: {
-          height: 70,
-          padding: 10,
-          backgroundColor: '#fff',
-        },
-        tabBarShowLabel: false,
-        headerShown: false, // Add this line to hide headers
-      }}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={Home}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <CustomTabBarIcon focused={focused} icon="home" label="Homw" />
-          ),
-          tabBarIconStyle:{
-            width: "100%",
-            height: "100%",
-          }
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={{
+          tabBarStyle: {
+            height: 70,
+            padding: 10,
+            backgroundColor: '#fff',
+          },
+          tabBarShowLabel: false,
+          headerShown: false,
         }}
-        
-      />
-      <Tab.Screen 
-        name="Browse" 
-        component={Browse}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <CustomTabBarIcon focused={focused} icon="search" label="Browse" />
-          ),
-          tabBarIconStyle:{
-            width: "100%",
-            height: "100%",
-          }
-        }}
-      />
-      <Tab.Screen 
-        name="Colleges" 
-        component={Colleges}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <CustomTabBarIcon focused={focused} icon="graduation-cap" label="Colleges" />
-          ),
-          tabBarIconStyle:{
-            width: "100%",
-            height: "100%",
-          }
-        }}
-      />
-      <Tab.Screen 
-        name="Counselling" 
-        component={Counselling}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <CustomTabBarIcon focused={focused} icon="comments" label="Counselling" />
-          ),
-          tabBarIconStyle:{
-            width: "100%",
-            height: "100%",
-          }
-        }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={Profile}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <CustomTabBarIcon focused={focused} icon="user" label="Profile" />
-          ),
-          tabBarIconStyle:{
-            width: "100%",
-            height: "100%",
-          }
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen 
+          name="Home" 
+          component={Home}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <CustomTabBarIcon focused={focused} icon="home" label="Home" />
+            ),
+            tabBarIconStyle:{
+              width: "100%",
+              height: "100%",
+            }
+          }}
+        />
+        <Tab.Screen 
+          name="Browse" 
+          component={Browse}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <CustomTabBarIcon focused={focused} icon="search" label="Browse" />
+            ),
+            tabBarIconStyle:{
+              width: "100%",
+              height: "100%",
+            }
+          }}
+        />
+        <Tab.Screen 
+          name="Colleges" 
+          component={Colleges}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <CustomTabBarIcon focused={focused} icon="graduation-cap" label="Colleges" />
+            ),
+            tabBarIconStyle:{
+              width: "100%",
+              height: "100%",
+            }
+          }}
+        />
+        <Tab.Screen 
+          name="Counselling" 
+          component={Counselling}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <CustomTabBarIcon focused={focused} icon="crown" label="Counselling" />
+            ),
+            tabBarIconStyle:{
+              width: "100%",
+              height: "100%",
+            }
+          }}
+        />
+        <Tab.Screen 
+          name="Profile" 
+          component={Profile}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <CustomTabBarIcon focused={focused} icon="user" label="Profile" />
+            ),
+            tabBarIconStyle:{
+              width: "100%",
+              height: "100%",
+            }
+          }}
+        />
+      </Tab.Navigator>
+    </View>
   );
 };
 
