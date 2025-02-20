@@ -9,6 +9,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SplashScreen } from './pages/Splash';
 import Notification from './pages/Notification';
 import PremiumButton from './components/General/PremiumButton';
+import CollegeDetails from './pages/CollegeDetails';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +67,7 @@ const App = () => {
             <Stack.Screen name="Home" component={TabNavigator} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Notification" component={Notification} />
+            <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
             </>
           )}
         </Stack.Navigator>

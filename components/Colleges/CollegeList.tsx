@@ -165,7 +165,7 @@ const CollegeList = ({ navigation }: any) => {
         renderItem={({ item }) => (
           <CollegeCard
             college={item}
-            onPress={() => navigation.navigate('CollegeDetails', { collegeId: item.id })}
+            onPress={() => navigation.navigate('CollegeDetails', { collegeId: item.id, instituteName: item.instituteName, city: item.city })}
           />
         )}
         keyExtractor={item => item.id}

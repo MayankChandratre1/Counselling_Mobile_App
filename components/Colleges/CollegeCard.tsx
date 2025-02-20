@@ -9,14 +9,14 @@ interface CollegeProps {
     city: string;
     image?: string;
   };
-  onPress: () => void;
+  onPress: (college: any) => void;
 }
 
 const CollegeCard = ({ college, onPress }: CollegeProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <TouchableOpacity style={styles.card} onPress={() => onPress(college)}>
       <View style={styles.imageContainer}>
         <Image 
           source={college.image 

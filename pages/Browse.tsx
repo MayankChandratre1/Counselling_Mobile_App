@@ -3,11 +3,11 @@ import React from 'react'
 import CollegeList from '../components/Colleges/CollegeList'
 import TopBar from '../components/General/TopBar'
 
-const Browse = () => {
+const Browse = ({navigation}:any) => {
   return (
     <View style={styles.container}>
       <TopBar heading='Search Colleges' />
-      <CollegeList />
+      <CollegeList navigation={navigation} />
     </View>
   )
 }
