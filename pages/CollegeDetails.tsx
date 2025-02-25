@@ -154,13 +154,13 @@ const CollegeDetails = () => {
     );
   }
 
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <View style={styles.centerContainer}>
+  //       <Text style={styles.errorText}>{error}</Text>
+  //     </View>
+  //   );
+  // }
 
   if (!college) {
     return (
@@ -210,7 +210,7 @@ const CollegeDetails = () => {
           
         </View>
         <Text style={styles.title}>{college.instituteName}</Text>
-        <Text style={styles.subtitle}>City: {college.city}</Text>
+        <Text style={styles.subtitle}>City: {college.city ? college.city.toUpperCase(): "N/A"}</Text>
         
         <TabBar activeTab={activeTab} onTabPress={setActiveTab} />
         {renderTabContent()}

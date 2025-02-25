@@ -42,7 +42,7 @@ const CollegeCard = ({ college, onPress }: CollegeProps) => {
       </View>
 
       <View style={styles.contentContainer}>
-        <Text style={styles.location}>{college.city}, Maharashtra</Text>
+        <Text style={styles.location}>{college.city ? `${college.city.toUpperCase().charAt(0)}${college.city.substring(1)}`: ""} </Text>
         <Text style={styles.instituteName} numberOfLines={2}>
           {college.instituteName}
         </Text>

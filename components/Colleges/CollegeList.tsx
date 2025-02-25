@@ -30,7 +30,7 @@ const CollegeList = ({ navigation }: any) => {
       );
       const data = await response.json();
 
-      console.log(data.nextPageId);
+      console.log(data);
             
       
       if (data.colleges.length < 10) {

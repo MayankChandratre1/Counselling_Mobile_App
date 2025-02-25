@@ -25,18 +25,25 @@ const CutoffTable = ({cutoffs}:{
 
   const TableHeader = () => (
     <View style={styles.tableHeader}>
-      <View style={styles.headerCell}><Text style={styles.headerText}>Cap</Text></View>
+      <View style={[styles.headerCell, {
+        width: 70,
+      }]}><Text style={styles.headerText}>Cap</Text></View>
       <View style={styles.headerCell}><Text style={styles.headerText}>Category</Text></View>
       <View style={styles.headerCell}><Text style={styles.headerText}>Rank</Text></View>
-      <View style={styles.headerCell}><Text style={styles.headerText}>%ile</Text></View>
+      <View style={styles.headerCell}><Text style={styles.headerText}>%</Text></View>
     </View>
   );
 
   const renderItem = ({ item }: { item: Cutoff }) => (
     <View style={styles.tableRow}>
-      <View style={styles.cell}><Text style={styles.cellText}>{parseInt(item.capRound.split(" ")[1])}</Text></View>
-      <View style={styles.cell}><Text style={styles.cellText}>{item.Category}</Text></View>
-      <View style={styles.cell}><Text style={styles.cellText}>{item.rank}</Text></View>
+      <View style={[styles.cell, , {
+        width: 70,
+      }]}><Text style={styles.cellText}>{parseInt(item.capRound.split(" ")[1])}</Text></View>
+      <View style={styles.cell}><Text style={styles.cellText}>{item.Category ?? "N/A"}</Text></View>
+      <View style={styles.cell}><Text style={[styles.cellText, {
+        fontWeight
+          : 'bold',
+      }]}>{item.rank}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.percentile.toFixed(2)}</Text></View>
     </View>
   );
@@ -72,10 +79,10 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#FFE94B',
+    backgroundColor: '#FACD649C',
     borderBottomWidth: 1,
-    borderColor: '#FFD700',
-    borderRadius:"10px"
+    borderColor: '#FACD64',
+    
   },
   tableRow: {
     flexDirection: 'row',
@@ -84,7 +91,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   headerCell: {
-    width: 150,
+    width: 100,
     padding: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -92,7 +99,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFD700',
   },
   cell: {
-    width: 150,
+    width: 100,
     padding: 10,
     justifyContent: 'center',
     alignItems: 'center',
