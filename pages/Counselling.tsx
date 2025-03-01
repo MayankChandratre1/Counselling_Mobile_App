@@ -1,7 +1,10 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native'
-import React from 'react'
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import TopBar from '../components/General/TopBar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import CounsellingForm from '../components/Counselling/CounsellingForm';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 
 const features = [
   "Personalized College Recommendations",
@@ -15,42 +18,125 @@ const features = [
   "Career Counseling and Guidance Based on College Choices"
 ];
 
-const PlanCard = ({ price, features, isPremium, title }: { price: string, features: string[], isPremium: boolean, title:String }) => (
-  <View style={styles.card}>
-    <Text style={styles.title}>{title}</Text>
-    <Text style={styles.price}>₹{price}</Text>
-    <View style={styles.featuresContainer}>
-      {features.map((feature, index) => (
-        <View key={index} style={styles.featureRow}>
-          <Icon 
-            name={isPremium || index < 5 ? "check-circle" : "close-circle"} 
-            size={24} 
-            color={isPremium || index < 5 ? "#4CAF50" : "#F44336"} 
-          />
-          <Text style={styles.featureText}>{feature}</Text>
-        </View>
-      ))}
-    </View>
-    <TouchableOpacity style={styles.button}>
-      <Text style={styles.buttonText}>Get Started</Text>
-    </TouchableOpacity>
-  </View>
-);
+const Counselling = ({ route, navigation }: any) => {
+  const [currentPlan, setCurrentPlan] = useState('')
+  const [isPremium, setIsPremium] = useState(false)
 
-const Counselling = () => {
+
+  useEffect(()=>{
+    const checkPlan = async () => {
+      const plan = await AsyncStorage.getItem('plan');
+      if (plan) {
+        
+        const { isPremium, plan: selectedPlan } = JSON.parse(plan);
+        setCurrentPlan(selectedPlan ?? "Free")
+        setIsPremium(isPremium)
+      }
+    }
+    checkPlan()
+  },[])
+
+  useEffect(() => {
+    // Check if we received params through tab navigation
+    if (route?.params?.selectedPlan) {
+      setCurrentPlan(route.params.selectedPlan)
+    }
+  }, [route?.params])
+
+  const handleGetStarted = (planDetails: any) => {
+    navigation.navigate('PlanDetails', planDetails)
+  }
+
+  const skipPremium = async () => {
+    const data = {
+      isPremium: false,
+      plan: 'Free',
+      price: '0',
+      expiry: null,
+    }
+    await AsyncStorage.setItem('plan', JSON.stringify(data));
+    setCurrentPlan('Free')
+    setIsPremium(false)
+  }
+
+  const PlanCard = ({ price, features, isPremium, title }: { price: string, features: string[], isPremium: boolean, title:String }) => (
+    <View style={styles.card}>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.price}>₹{price}</Text>
+      <View style={styles.featuresContainer}>
+        {features.map((feature, index) => (
+          <View key={index} style={styles.featureRow}>
+            <Icon 
+              name={isPremium || index < 5 ? "check-circle" : "close-circle"} 
+              size={24} 
+              color={isPremium || index < 5 ? "#4CAF50" : "#F44336"} 
+            />
+            <Text style={styles.featureText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
+      <TouchableOpacity 
+        style={styles.button}
+        onPress={() => handleGetStarted({ price, features, isPremium, title })}
+      >
+        <Text style={styles.buttonText}>Get Started</Text>
+      </TouchableOpacity>
+    </View>
+  )
+
+
+  if(isPremium && currentPlan == "Counselling"){
+    return (
+      <>
+        <TopBar heading="Counselling" />
+        <ScrollView style={styles.container}>
+          <CounsellingForm />
+          
+        </ScrollView>
+      </>
+    )
+  }
+
+  if(isPremium && currentPlan == "Premium"){
+    return (
+      <>
+        <TopBar heading="Premium" />
+        <ScrollView style={styles.container}>
+          <View style={styles.currentPlanCard}>
+            <Text style={styles.currentPlan}>Current Plan: {currentPlan}</Text>
+           
+          </View>
+          <PlanCard title={"Counselling"} price="6,999" features={features} isPremium={true} />
+        </ScrollView>
+      </>
+    )
+  }
+
   return (
     <>
-    <TopBar heading="Plans" />
-    <ScrollView style={styles.container}>
-      <View style={styles.currentPlanCard}>
-        <Text style={styles.currentPlan}>Current Plan: Free</Text>
+      <TopBar heading="Plans" />
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.currentPlanCard}>
+            <Text style={styles.currentPlan}>Current Plan: {currentPlan}</Text>
+            <Pressable onPress={skipPremium}>
+              <AntDesign name="closecircleo" size={24} color="#fff" />
+            </Pressable>
+          </View>
+          <PlanCard title={"Premium"} price="499" features={features} isPremium={false} />
+          <PlanCard title={"Counselling"} price="6,999" features={features} isPremium={true} />
+        </ScrollView>
+        
+        {/* Skip button outside ScrollView to stay at bottom */}
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity style={styles.skipButton} onPress={skipPremium}>
+            <Text style={styles.skipButtonText}>Skip Premium</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <PlanCard title={"Premium"} price="499" features={features} isPremium={false} />
-      <PlanCard title={"Counselling"} price="6,999" features={features} isPremium={true} />
-    </ScrollView>
     </>
-  );
-};
+  )
+}
 
 export default Counselling;
 
@@ -58,7 +144,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
     padding: 24,
+  },
+  bottomContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  skipButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   title:{
     fontSize: 24,
@@ -70,6 +175,9 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     padding: 20,
     marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     
   },
   currentPlan: {
@@ -121,4 +229,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  
 });

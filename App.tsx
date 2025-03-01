@@ -5,13 +5,31 @@ import { OnboardingScreen } from './pages/Onboarding';
 import { LoginScreen } from './pages/LoginPage';
 import TabNavigator from './navigation/TabNavigator';
 import { getUserData } from './utils/storage';
-import { ActivityIndicator, View } from 'react-native';
+import {  View } from 'react-native';
 import { SplashScreen } from './pages/Splash';
 import Notification from './pages/Notification';
 import PremiumButton from './components/General/PremiumButton';
 import CollegeDetails from './pages/CollegeDetails';
+import PlanDetails from './pages/PlanDetails';
 
-const Stack = createNativeStackNavigator();
+type RootStackParamList = {
+  Onboarding: { step: number };
+  Login: undefined;
+  Home: undefined;
+  Notification: undefined;
+  PlanDetails: {
+    title: string;
+    price: string;
+    features: string[];
+    isPremium: boolean;
+  };
+  Counselling: {
+    selectedPlan?: string;
+  };
+  CollegeDetails: { collegeId: string };
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +79,7 @@ const App = () => {
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Home" component={TabNavigator} />
               <Stack.Screen name="Notification" component={Notification} />
+              <Stack.Screen name="PlanDetails" component={PlanDetails} />
             </>
           ) : (
             <>
@@ -68,10 +87,11 @@ const App = () => {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Notification" component={Notification} />
             <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
+            <Stack.Screen name="PlanDetails" component={PlanDetails} />
             </>
           )}
         </Stack.Navigator>
-        {isLoggedIn && !isPremium && <PremiumButton />}
+        {/* {isLoggedIn && !isPremium && <PremiumButton />} */}
       </View>
     </NavigationContainer>
   );

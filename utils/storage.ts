@@ -8,16 +8,23 @@ interface UserData {
   field?: string;
   jeeMarks?: string;
   cetMarks?: string;
+  premiumPlan?: string;
 }
 
 export const storeUserData = async (userData: Partial<UserData>) => {
   try {
     const existingData = await getUserData();
+    if(existingData && existingData.phone !== userData.phone) {
+      await clearUserData();
+    }
     await AsyncStorage.setItem('userData', JSON.stringify({
-      ...existingData,
       ...userData,
-      isPremium: existingData?.isPremium || false,
     }));
+    await AsyncStorage.setItem('plan', JSON.stringify({
+      isPremium : userData.isPremium,
+      plan: userData.premiumPlan,
+    }));
+
     return true;
   } catch (error) {
     console.error('Error saving user data:', error);
