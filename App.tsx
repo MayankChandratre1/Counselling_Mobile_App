@@ -11,6 +11,7 @@ import Notification from './pages/Notification';
 import PremiumButton from './components/General/PremiumButton';
 import CollegeDetails from './pages/CollegeDetails';
 import PlanDetails from './pages/PlanDetails';
+import RegistrationForm from './pages/RegistrationForm';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -27,6 +28,14 @@ type RootStackParamList = {
     selectedPlan?: string;
   };
   CollegeDetails: { collegeId: string };
+  RegistrationForm: {
+    planDetails: {
+      isPremium: boolean;
+      plan: string;
+      price: string;
+      expiry: number | null;
+    };
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -80,6 +89,7 @@ const App = () => {
               <Stack.Screen name="Home" component={TabNavigator} />
               <Stack.Screen name="Notification" component={Notification} />
               <Stack.Screen name="PlanDetails" component={PlanDetails} />
+              <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
             </>
           ) : (
             <>
@@ -88,6 +98,7 @@ const App = () => {
             <Stack.Screen name="Notification" component={Notification} />
             <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
             <Stack.Screen name="PlanDetails" component={PlanDetails} />
+            <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
             </>
           )}
         </Stack.Navigator>

@@ -1,6 +1,7 @@
 import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View, Image, Alert, Pressable } from 'react-native'
+import Ionicons from 'react-native-vector-icons/Ionicons'
 import { storeUserData } from '../utils/storage';
-import React from 'react'
+import React, { useState } from 'react'
 import config from '../configs/API';
 
 export const LoginScreen = ({navigation}:any) => {
@@ -8,7 +9,10 @@ export const LoginScreen = ({navigation}:any) => {
   const [phone, setPhone] = React.useState('');
   const [isLogin, setIsLogin] = React.useState(false);
   const [isOtp, setIsOtp] = React.useState(false);
+  const [isPassword, setIsPassword] = React.useState(false);
   const [otp, setOtp] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!phone) {
@@ -22,7 +26,7 @@ export const LoginScreen = ({navigation}:any) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify({ phone, password })
       });
       
       const data = await res.json();
@@ -35,6 +39,8 @@ export const LoginScreen = ({navigation}:any) => {
         Alert.alert('Error', data.error || 'User not found');
       }
     } catch (error) {
+      console.log(error);
+      
       Alert.alert('Error', 'Failed to login');
     }
   }
@@ -47,7 +53,7 @@ export const LoginScreen = ({navigation}:any) => {
       }
       
       try {
-        const res = await fetch(`${config.USER_API}/send-otp`, {
+        const res = await fetch(`${config.USER_API}/ispremium`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -59,8 +65,8 @@ export const LoginScreen = ({navigation}:any) => {
         console.log(data);
         
         if (res.ok) {
-          if(data.otpSent){
-            setIsOtp(true);
+          if(data.isPremium){
+            setIsPassword(true);
           }else{
             await handleLogin();
           }
@@ -68,6 +74,8 @@ export const LoginScreen = ({navigation}:any) => {
           Alert.alert('Error', data.error || 'User not found');
         }
       } catch (error) {
+        console.log(error);
+        
         Alert.alert('Error', 'Failed to login');
       }
     } else {
@@ -106,9 +114,9 @@ export const LoginScreen = ({navigation}:any) => {
         
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeText}>{
-          isOtp ? `An OTP has been sent to ${phone.substring(5,10).padStart(10,"X")}`:`Welcome,`  
+          isPassword ? `Enter Your Password`:`Welcome,`  
           }</Text>
-          {!isOtp && <Text style={styles.subtitle}>
+          {!isPassword && <Text style={styles.subtitle}>
             To Maharashtra's Most Trusted Counselling Platform
           </Text>}
         </View>
@@ -123,7 +131,7 @@ export const LoginScreen = ({navigation}:any) => {
             />
           )}
 
-          {!isOtp && <TextInput
+          {!isPassword && <TextInput
             style={[styles.input]}
             placeholder="Enter your phone number"
             value={phone}
@@ -132,16 +140,31 @@ export const LoginScreen = ({navigation}:any) => {
           />}
 
           {
-            isOtp && <TextInput
-            style={[styles.input, { fontSize: 24, paddingVertical: 10, letterSpacing:10 }] }
-            placeholder="XXXXXX"
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="phone-pad"
-            />
+            isPassword && (
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.passwordInput, { fontSize: 24, paddingVertical: 10, letterSpacing: 2 }]}
+                  contextMenuHidden
+                  secureTextEntry={!showPassword}
+                  placeholder="*******"
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                    size={24} 
+                    color="#666"
+                  />
+                </TouchableOpacity>
+              </View>
+            )
           }
 
-         {isOtp ? <TouchableOpacity
+         {isPassword ? <TouchableOpacity
             onPress={handleLogin}
             style={styles.button}>
             <Text style={styles.buttonText}>
@@ -263,5 +286,25 @@ const styles = StyleSheet.create({
     color: '#613EEA',
     fontSize: 14,
     fontWeight: '500',
+  },
+  passwordContainer: {
+    position: 'relative',
+    width: '100%',
+    marginBottom: 15,
+  },
+  passwordInput: {
+    width: '100%',
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingRight: 50, // Make room for the eye icon
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: 12,
+    padding: 5,
   },
 })

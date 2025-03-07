@@ -34,11 +34,16 @@ const CutoffTable = ({cutoffs}:{
     </View>
   );
 
+  const numberExtractor = (str: string) => {
+    const num = str.match(/\d+/);
+    return num ? Number(num[0]) : 0;
+  }
+
   const renderItem = ({ item }: { item: Cutoff }) => (
     <View style={styles.tableRow}>
       <View style={[styles.cell, , {
         width: 70,
-      }]}><Text style={styles.cellText}>{parseInt(item.capRound.split(" ")[1])}</Text></View>
+      }]}><Text style={styles.cellText}>{numberExtractor(item.capRound)}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.Category ?? "N/A"}</Text></View>
       <View style={styles.cell}><Text style={[styles.cellText, {
         fontWeight

@@ -5,7 +5,7 @@ import UpdateSlider  from "../components/Home/UpdateSlider"
 import FontAwesome from "react-native-vector-icons/FontAwesome"
 import Feather from "react-native-vector-icons/Feather"
 import CollegeCard from '../components/Colleges/CollegeCard'
-
+import { CommonActions } from '@react-navigation/native';
 // Remove these imports as they're not needed in Home
 // import { NavigationContainer } from '@react-navigation/native';
 // import { createNativeStackNavigator } from '@react-navigation/native-stack'
@@ -13,7 +13,8 @@ import CollegeCard from '../components/Colleges/CollegeCard'
 
 // Remove this as it's not needed here
 // const Stack = createNativeStackNavigator();
-
+import config from '../configs/API'
+const { USER_API } = config;
 const SectionsNav = ({ navigation }: { navigation: any }) => (
   <View style={styles.sectionsContainer}>
     <Text style={styles.sectionTitle}>Sections</Text>
@@ -41,7 +42,7 @@ const SectionsNav = ({ navigation }: { navigation: any }) => (
 );
 
 const Home = ({navigation}:any) => {
-    const [userData, setUserData] = useState<{name: string, phone: string} | null>(null);
+    const [userData, setUserData] = useState<any>(null);
 
     useEffect(() => {
         loadUserData();
@@ -53,8 +54,27 @@ const Home = ({navigation}:any) => {
     };
 
     const logout = async () => {
+        console.log(userData.id);
+        
+        const res = await fetch(`${USER_API}/logout`,{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userData?.id,
+            })
+        });
+        console.log((await res.json()));
+        
         await clearUserData();
-        navigation.navigate('Login');
+        setUserData(null);
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            })
+        );
     };
 
     return (

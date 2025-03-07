@@ -22,7 +22,7 @@ export const storeUserData = async (userData: Partial<UserData>) => {
     }));
     await AsyncStorage.setItem('plan', JSON.stringify({
       isPremium : userData.isPremium,
-      plan: userData.premiumPlan,
+      plan: userData.isPremium ? userData.premiumPlan: null,
     }));
 
     return true;

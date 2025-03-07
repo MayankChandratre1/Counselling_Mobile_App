@@ -13,6 +13,14 @@ type RootStackParamList = {
     features: string[];
     isPremium: boolean;
   };
+  RegistrationForm: {
+    planDetails: {
+      isPremium: boolean;
+      plan: string;
+      price: string;
+      expiry: number | null;
+  }
+  };
   Counselling: {
     selectedPlan?: string;
   };
@@ -37,20 +45,9 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
         expiry: title == 'Premium' ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
     }
     await AsyncStorage.setItem('plan', JSON.stringify(data));
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'Home',
-            params: {
-              screen: 'Counselling',
-              params: { selectedPlan: title }
-            },
-          },
-        ],
-      })
-    );
+    navigation.navigate('RegistrationForm', {
+      planDetails: data
+    });
   }
 
   return (
