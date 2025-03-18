@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { clearUserData, getUserData } from '../utils/storage'
+import { clearUserData, getUserData, logout } from '../utils/storage'
 import UpdateSlider  from "../components/Home/UpdateSlider"
 import FontAwesome from "react-native-vector-icons/FontAwesome"
 import Feather from "react-native-vector-icons/Feather"
@@ -53,29 +53,15 @@ const Home = ({navigation}:any) => {
         setUserData(data);
     };
 
-    const logout = async () => {
-        console.log(userData.id);
+    const handleLogout = async () => {
+        const success = await logout(userData?.id);
+        console.log(success);
         
-        const res = await fetch(`${USER_API}/logout`,{
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userId: userData?.id,
-            })
-        });
-        console.log((await res.json()));
         
-        await clearUserData();
-        setUserData(null);
-        navigation.dispatch(
-            CommonActions.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            })
-        );
-    };
+        if (success) {
+          navigation.replace('Login');
+        }
+      };
 
     return (
         <ScrollView style={styles.container}>
@@ -126,7 +112,7 @@ const Home = ({navigation}:any) => {
                     onPress={() => navigation.navigate('CollegeDetails')}
                 />
                 
-                <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                     <Text>Logout</Text>
                 </TouchableOpacity>
             </View>

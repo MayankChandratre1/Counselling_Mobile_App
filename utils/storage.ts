@@ -1,4 +1,6 @@
+import { secureRequest, RequestMethod } from './tokenedRequest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import config from '../configs/API';
 
 interface UserData {
   name: string;
@@ -9,6 +11,7 @@ interface UserData {
   jeeMarks?: string;
   cetMarks?: string;
   premiumPlan?: string;
+  token?: string;
 }
 
 export const storeUserData = async (userData: Partial<UserData>) => {
@@ -19,6 +22,9 @@ export const storeUserData = async (userData: Partial<UserData>) => {
     }
     await AsyncStorage.setItem('userData', JSON.stringify({
       ...userData,
+    }));
+    await AsyncStorage.setItem('token', JSON.stringify({
+      token: userData.token
     }));
     await AsyncStorage.setItem('plan', JSON.stringify({
       isPremium : userData.isPremium,
@@ -48,6 +54,30 @@ export const clearUserData = async () => {
     return true;
   } catch (error) {
     console.error('Error clearing user data:', error);
+    return false;
+  }
+};
+
+export const logout = async (userId:string) => {
+  try {
+    // Call logout endpoint
+    const { error } = await secureRequest(
+      `${config.USER_API}/logout`, 
+      RequestMethod.POST,{
+        body:{userId}
+      }
+    );
+
+    if (error) {
+      throw new Error(error);
+    }
+
+    // Clear local storage
+    await AsyncStorage.multiRemove(['userData', 'plan']);
+
+    return true;
+  } catch (error) {
+    console.error('Logout failed:', error);
     return false;
   }
 };

@@ -18,6 +18,7 @@ const ProfileForm = () => {
     { label: 'Field', key: 'field', value: '', isEditing: false },
     { label: 'Marks in JEE', key: 'jeeMarks', value: '', isEditing: false },
     { label: 'Marks in CET', key: 'cetMarks', value: '', isEditing: false },
+    { label: 'Preferred Location', key: 'prefferedlocation', value: '', isEditing: false },
   ]);
 
   useEffect(() => {

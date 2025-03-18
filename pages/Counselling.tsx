@@ -29,9 +29,8 @@ const Counselling = ({ route, navigation }: any) => {
       if (plan) {
         
         const { isPremium, plan: selectedPlan } = JSON.parse(plan);
-        console.log(selectedPlan);
-        
-        setCurrentPlan(selectedPlan.planTitle ?? "Free")
+                
+        setCurrentPlan(selectedPlan ?? "Free")
         setIsPremium(isPremium)
       }
     }

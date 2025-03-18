@@ -11,6 +11,7 @@ interface College {
   rank: number;
   percentile: number;
   city: string;
+  ai?: number;  // Add this property
 }
 
 const Colleges = () => {
@@ -67,6 +68,7 @@ const Colleges = () => {
       <View style={styles.headerCell}><Text style={styles.headerText}>Rank</Text></View>
       <View style={styles.headerCell}><Text style={styles.headerText}>%ile</Text></View>
       <View style={styles.headerCell}><Text style={styles.headerText}>City</Text></View>
+      <View style={styles.headerCell}><Text style={styles.headerText}>AI</Text></View>
     </View>
   );
 
@@ -79,6 +81,7 @@ const Colleges = () => {
       <View style={styles.cell}><Text style={styles.cellText}>{item.rank}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.percentile.toFixed(2)}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.city}</Text></View>
+      <View style={styles.cell}><Text style={styles.cellText}>90%</Text></View>
     </View>
   );
 

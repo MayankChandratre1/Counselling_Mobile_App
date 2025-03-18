@@ -89,7 +89,18 @@ const RegistrationForm = ({ route, navigation }: any) => {
       }),
     })
 
-    console.log(await res.json());
+    const data = await res.json()
+    console.log(data)
+
+    const storedData = await getUserData()
+    console.log(storedData);
+    
+
+    navigation.navigate({
+      name: 'Home',
+      params: { planDetails: planDetails },
+      merge: true,
+    })
    }catch(err){
       console.log(err);
    }
@@ -298,7 +309,7 @@ const RegistrationForm = ({ route, navigation }: any) => {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
@@ -348,6 +359,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     padding: 20,
+  },
+  scrollViewContent: {
+    paddingBottom: 100, 
   },
   stepContainer: {
     marginBottom: 20,

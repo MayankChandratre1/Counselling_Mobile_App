@@ -11,7 +11,8 @@ interface Cutoff {
   rank: number;
   percentile: number;
   city: string;
-  capRound: string
+  capRound: string;
+  ai?: number;  // Add this property
 }
 
 const CutoffTable = ({cutoffs}:{
@@ -31,6 +32,7 @@ const CutoffTable = ({cutoffs}:{
       <View style={styles.headerCell}><Text style={styles.headerText}>Category</Text></View>
       <View style={styles.headerCell}><Text style={styles.headerText}>Rank</Text></View>
       <View style={styles.headerCell}><Text style={styles.headerText}>%</Text></View>
+      <View style={styles.headerCell}><Text style={styles.headerText}>Ai</Text></View>
     </View>
   );
 
@@ -50,6 +52,7 @@ const CutoffTable = ({cutoffs}:{
           : 'bold',
       }]}>{item.rank}</Text></View>
       <View style={styles.cell}><Text style={styles.cellText}>{item.percentile.toFixed(2)}</Text></View>
+      <View style={styles.cell}><Text style={styles.cellText}>90%</Text></View>
     </View>
   );
 
