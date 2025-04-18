@@ -5,6 +5,8 @@ import TopBar from '../components/General/TopBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CounsellingForm from '../components/Counselling/CounsellingForm';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import { getUserData, getUserPlanData } from '../utils/storage';
+import StackNavigationPremium from '../components/Counselling/StackNavigationPremium';
 
 const features = [
   "Personalized College Recommendations",
@@ -22,16 +24,15 @@ const Counselling = ({ route, navigation }: any) => {
   const [currentPlan, setCurrentPlan] = useState('')
   const [isPremium, setIsPremium] = useState(false)
 
-
-  useEffect(()=>{
+  useEffect(() => {
     const checkPlan = async () => {
-      const plan = await AsyncStorage.getItem('plan');
+      const plan = await getUserPlanData();
+      console.log("Plan found", plan);
+      
       if (plan) {
-        
-        const { isPremium, plan: selectedPlan } = JSON.parse(plan);
-                
-        setCurrentPlan(selectedPlan ?? "Free")
-        setIsPremium(isPremium)
+        const userData = await getUserData()
+        setCurrentPlan(plan.plan?.planTitle ?? "Free")
+        setIsPremium(plan.isPremium)
       }
     }
     checkPlan()
@@ -85,32 +86,12 @@ const Counselling = ({ route, navigation }: any) => {
     </View>
   )
 
-
-  if(isPremium && currentPlan == "Counselling"){
+  if(isPremium) {
     return (
       <>
-        <TopBar heading="Counselling" />
-        <ScrollView style={styles.container}>
-          <CounsellingForm />
-          
-        </ScrollView>
+        <StackNavigationPremium planType={currentPlan as 'Premium' | 'Counselling'} />
       </>
-    )
-  }
-
-  if(isPremium && currentPlan == "Premium"){
-    return (
-      <>
-        <TopBar heading="Premium" />
-        <ScrollView style={styles.container}>
-          <View style={styles.currentPlanCard}>
-            <Text style={styles.currentPlan}>Current Plan: {currentPlan}</Text>
-           
-          </View>
-          <PlanCard title={"Counselling"} price="6,999" features={features} isPremium={true} />
-        </ScrollView>
-      </>
-    )
+    );
   }
 
   return (

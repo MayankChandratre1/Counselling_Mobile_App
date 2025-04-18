@@ -37,6 +37,31 @@ export const storeUserData = async (userData: Partial<UserData>) => {
     return false;
   }
 };
+export const storeUserPlanData = async (userPlanData: any) => {
+  try {
+    const existingData = await AsyncStorage.getItem('plan');
+    await AsyncStorage.setItem('plan', JSON.stringify({
+      ...JSON.parse(existingData || '{}'),
+      isPremium : userPlanData.isPremium,
+    }));
+
+    return true;
+  } catch (error) {
+    console.error('Error saving user data:', error);
+    return false;
+  }
+};
+
+export const getUserPlanData = async () => {
+  try {
+    const existingData = await AsyncStorage.getItem('plan');
+
+    return JSON.parse(existingData || '{}');
+  } catch (error) {
+    console.error('Error saving user data:', error);
+    return false;
+  }
+};
 
 export const getUserData = async () => {
   try {

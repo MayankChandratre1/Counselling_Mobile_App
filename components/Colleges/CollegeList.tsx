@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import CollegeCard from './CollegeCard'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import config from '../../configs/API';
+import CustomTextInput from '../General/CustomTextInput';
 
 interface College {
   id: string;
@@ -137,7 +138,7 @@ const CollegeList = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <TextInput
+        <CustomTextInput
           style={styles.searchInput}
           placeholder="Search colleges..."
           value={searchQuery}

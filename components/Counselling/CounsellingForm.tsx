@@ -1,17 +1,21 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, View, ScrollView } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Icon from 'react-native-vector-icons/FontAwesome6'
 import CounsellingStep from './CounsellingStep'
 import { RequestMethod, secureRequest } from '../../utils/tokenedRequest'
 import config from '../../configs/API'
+import { getUserData } from '../../utils/storage'
+import { useNavigation } from '@react-navigation/native';
+import TopBar from '../General/TopBar'
+import CustomText from '../General/CustomText'
 
 const CounsellingForm = () => {
+  const navigation = useNavigation<any>();
   const cancePlan = async () => {
     // Here add your API call and navigation logic
     await AsyncStorage.removeItem('plan');
   }
-
 
   const [steps, setSteps] = React.useState<any[] | null>(null);
   const [editingStep, setEditingStep] = useState<number | null>(null);
@@ -21,7 +25,11 @@ const CounsellingForm = () => {
     setEditingStep(stepNumber);
   };
 
-  const handleSave = (stepNumber: number, data: { status: 'Yes' | 'No', remark: string }) => {
+  const handleSave = async (stepNumber: number, data: { status: 'Yes' | 'No', remark: string }) => {
+    const edited_data = {
+      ...stepsData,
+      [stepNumber]: data
+    }
     setStepsData(prev => ({
       ...prev,
       [stepNumber]: data
@@ -32,15 +40,26 @@ const CounsellingForm = () => {
     const allStepsData = steps?.map(step => ({
       number: step.number,
       title: step.title,
-      ...stepsData[step.number] || { status: 'No', remark: '' }
+      ...edited_data[step.number] || { status: 'No', remark: '' }
     }));
-    console.log('All Steps Data:', allStepsData);
+    const userData = await getUserData()
+    
+    const updateResponse = await secureRequest(`${config.USER_API}/formdata/${userData.phone}/elite-1234567`, RequestMethod.POST, {
+      body: {
+        steps: allStepsData
+      }
+    });
+    console.log(updateResponse);
+    
   };
 
   const fetchSteps = async () => {
-    const response:any = await secureRequest(`${config.USER_API}/formsteps/63e53`, RequestMethod.GET);
-    console.log(response.data?.steps);
-    
+    const user = await getUserData()
+    const response:any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/elite-1234567`, RequestMethod.GET);
+    setStepsData(response.data?.steps.reduce((acc: any, step: any) => {
+      acc[step.number] = step;
+      return acc;
+    }, {}));    
     setSteps(response.data?.steps as any[]);
   }
 
@@ -48,53 +67,74 @@ const CounsellingForm = () => {
     fetchSteps();
   },[])
 
-  return (
-    <View>
-      <Pressable onPress={() => {
-        cancePlan()
-        console.log('Plan Cancelled');
-        
-      }}>
-        
-      </Pressable>
-      <View style={styles.eliteMember}>
-        <View style={styles.iconContainer}>
-          <Icon name="crown" size={32} color="#613EEA" />
-        </View>
-        <Text style={styles.eliteText}>Elite Member</Text>
-      </View>
-
-     
-
-      <View style={{
-        minHeight: "100%"
-      }}>
-        <View style={{ width: "10%",height:"100%", borderRadius: 8, paddingInline: 10, alignItems: 'center', justifyContent: 'center', position: 'absolute', marginInline: 15 }}>
-          <View
-              style={{
-                width: 4,
-                height: "100%",
-                backgroundColor: '#613EEA80',
-                margin: 'auto',
-              }}
-            ></View>
-        </View>
-        {
-          steps && steps.length > 0 &&steps?.map((step, index) => (
-            <CounsellingStep 
-              key={step.number}
-              title={step.title} 
-              stepNumber={step.number}
-              onEdit={() => handleEdit(step.number)}
-              onSave={handleSave}
-              isEditing={editingStep === step.number}
-              stepData={stepsData[step.number]}
-              isCompleted={!!stepsData[step.number]} // Mark as completed if step has data
-            />
-          ))
-        }  
-      </View>
+  const calculateProgress = () => {
+    if (!steps || steps.length === 0) return { completed: 0, total: 0, percentage: 0 };
     
+    const total = steps.length;
+    const completed = Object.values(stepsData).filter(step => step?.status === 'Yes').length;
+    const percentage = Math.round((completed / total) * 100);
+    
+    return { completed, total, percentage };
+  };
+
+  return (
+    <View style={styles.mainContainer}>
+      <TopBar heading="Track Progress" />
+      <View style={styles.eliteMember}>
+        <View style={styles.eliteHeader}>
+          <View style={styles.iconContainer}>
+            <Icon name="crown" size={32} color="#613EEA" />
+          </View>
+          <CustomText style={styles.eliteText}>Elite Member</CustomText>
+        </View>
+        
+        <View style={styles.progressMetrics}>
+          <CustomText style={styles.progressText}>
+            {`${calculateProgress().completed}/${calculateProgress().total} Steps`}
+            
+          </CustomText>
+          <View style={styles.progressBarContainer}>
+            <View 
+              style={[
+                styles.progressBarFill, 
+                { width: `${calculateProgress().percentage}%` }
+              ]} 
+            />
+          </View>
+          
+        </View>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.stepsContainer}>
+          <View style={styles.timelineBar}>
+            <View style={styles.timelineLine} />
+          </View>
+          {
+            steps && steps.length > 0 &&steps?.map((step, index) => (
+              <CounsellingStep 
+                key={step.number}
+                title={step.title} 
+                stepNumber={step.number}
+                onEdit={() => handleEdit(step.number)}
+                onSave={handleSave}
+                isEditing={editingStep === step.number}
+                stepData={stepsData[step.number]}
+                isCompleted={!!stepsData[step.number]} // Mark as completed if step has data
+                leftCTA={step.showListButton ? {
+                  label:"View Lists",
+                  onPress: () => navigation.navigate('MyLists')
+                } : undefined}
+                isLocked={!!step.isLocked}
+                description={step.description}
+              />
+            ))
+          }  
+        </View>
+      </ScrollView>
     </View>
   )
 }
@@ -103,10 +143,41 @@ const styles = StyleSheet.create({
   eliteMember: {
     backgroundColor: '#613EEA',
     paddingVertical: 15,
-    paddingInline: 10,
+    paddingHorizontal: 15,
+  },
+  eliteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
+    marginBottom: 15,
+  },
+  progressMetrics: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    padding: 12,
+  },
+  progressText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 4,
+  },
+  percentageText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
   iconContainer: {
     backgroundColor: '#D9D9D9',
@@ -120,6 +191,44 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 36,
     fontWeight: 'bold',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  contentContainer: {
+    paddingBottom: 100,
+  },
+  stepsContainer: {
+    position: 'relative',
+    paddingTop:20,
+    flexGrow: 1,
+  },
+  timelineBar: {
+    width: "10%",
+    height: "100%",
+    position: 'absolute',
+    paddingInline: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginInline: 15,
+  },
+  timelineLine: {
+    width: 4,
+    height: "100%",
+    backgroundColor: '#613EEA80',
+    margin: 'auto',
+  },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContainer: {
+    flex: 1,
+    
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
 })
 

@@ -1,162 +1,100 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import Home from '../pages/Home';
 import Colleges from '../components/Colleges';
 import Profile from '../pages/Profile';
 import Counselling from '../pages/Counselling';
 import Browse from '../pages/Browse';
 import React from 'react';
-import { getUserData } from '../utils/storage';
+import CustomText from '../components/General/CustomText';
 
 const Tab = createBottomTabNavigator();
+const { width, height } = Dimensions.get('window');
+
+// Scale UI elements based on screen size
+const scale = Math.min(width, height) / 375; // 375 is baseline width
 
 const CustomTabBarIcon = ({ focused, icon, label }: { focused: boolean; icon: string; label: string }) => (
-  <View style={[
-    focused && {
-      borderWidth: 10,
-      borderColor: '#fff',
-      borderRadius: "50%",
-      height:100,
-      width: 100,
-      marginBottom: 30
-  }
-  ]}>
-    <View style={[
-        styles.tabItem,
-        focused && styles.tabItemActive
-        
-    ]}>
-    {
-      icon == 'crown' ? (
-        <FontAwesome6
-        name={icon} 
-        size={30} 
-        color={focused ? '#fff' : '#cdcfcf'} 
-      />
-      ):(<FontAwesome 
-        name={icon} 
-        size={30} 
-        color={focused ? '#fff' : '#cdcfcf'} 
-      />)
-    }
-    
+  <View style={focused ? styles.activeIconWrapper : undefined}>
+    <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+      {icon === 'crown' ? (
+        <FontAwesome6 name={icon} size={24 * scale} color={focused ? '#fff' : '#cdcfcf'} />
+      ) : (
+        <FontAwesome name={icon} size={24 * scale} color={focused ? '#fff' : '#cdcfcf'} />
+      )}
     </View>
   </View>
 );
 
 const TabNavigator = () => {
+  // Define screens configuration to reduce repetitive code
+  const screens = [
+    { name: 'Home', component: Home, icon: 'home' },
+    { name: 'Browse', component: Browse, icon: 'search' },
+    { name: 'Colleges', component: Colleges, icon: 'graduation-cap' },
+    { name: 'Counselling', component: Counselling, icon: 'crown' },
+    { name: 'Profile', component: Profile, icon: 'user' }
+  ];
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <Tab.Navigator
         screenOptions={{
-          tabBarStyle: {
-            height: 70,
-            padding: 10,
-            backgroundColor: '#fff',
-          },
+          tabBarStyle: styles.tabBar,
           tabBarShowLabel: false,
           headerShown: false,
         }}
       >
-        <Tab.Screen 
-          name="Home" 
-          component={Home}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <CustomTabBarIcon focused={focused} icon="home" label="Home" />
-            ),
-            tabBarIconStyle:{
-              width: "100%",
-              height: "100%",
-            }
-          }}
-        />
-        <Tab.Screen 
-          name="Browse" 
-          component={Browse}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <CustomTabBarIcon focused={focused} icon="search" label="Browse" />
-            ),
-            tabBarIconStyle:{
-              width: "100%",
-              height: "100%",
-            }
-          }}
-        />
-        <Tab.Screen 
-          name="Colleges" 
-          component={Colleges}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <CustomTabBarIcon focused={focused} icon="graduation-cap" label="Colleges" />
-            ),
-            tabBarIconStyle:{
-              width: "100%",
-              height: "100%",
-            }
-          }}
-        />
-        <Tab.Screen 
-          name="Counselling" 
-          component={Counselling}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <CustomTabBarIcon focused={focused} icon="crown" label="Counselling" />
-            ),
-            tabBarIconStyle:{
-              width: "100%",
-              height: "100%",
-            }
-          }}
-        />
-        <Tab.Screen 
-          name="Profile" 
-          component={Profile}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <CustomTabBarIcon focused={focused} icon="user" label="Profile" />
-            ),
-            tabBarIconStyle:{
-              width: "100%",
-              height: "100%",
-            }
-          }}
-        />
+        {screens.map(screen => (
+          <Tab.Screen 
+            key={screen.name}
+            name={screen.name} 
+            component={screen.component}
+            options={{
+              tabBarIcon: ({ focused }) => (
+                <CustomTabBarIcon focused={focused} icon={screen.icon} label={screen.name} />
+              ),
+            }}
+          />
+        ))}
       </Tab.Navigator>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  tabBar: {
+    height: 60 * scale,
+    paddingVertical: 8 * scale,
+    backgroundColor: '#fff',
+  },
+  activeIconWrapper: {
+    borderWidth: 8 * scale,
+    borderColor: '#fff',
+    borderRadius: 50,
+    height: 80 * scale,
+    width: 80 * scale,
+    marginBottom: 25 * scale,
+  },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: "50%",
-    height:80,
-    width: 80,
+    borderRadius: 50,
+    height: 64 * scale,
+    width: 64 * scale,
   },
   tabItemActive: {
     backgroundColor: '#371981',
-    height:80,
-    width: 80,
-    marginBottom: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.8,
     shadowRadius: 1, 
     elevation: 5,
-  },
-  tabLabel: {
-    fontSize: 8,
-    color: '#371981',
-    opacity: 0,
-  },
-  tabLabelActive: {
-    color: '#fff',
-    opacity: 0,
   },
 });
 

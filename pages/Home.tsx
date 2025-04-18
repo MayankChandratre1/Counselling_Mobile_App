@@ -6,36 +6,31 @@ import FontAwesome from "react-native-vector-icons/FontAwesome"
 import Feather from "react-native-vector-icons/Feather"
 import CollegeCard from '../components/Colleges/CollegeCard'
 import { CommonActions } from '@react-navigation/native';
-// Remove these imports as they're not needed in Home
-// import { NavigationContainer } from '@react-navigation/native';
-// import { createNativeStackNavigator } from '@react-navigation/native-stack'
-// import Notification from './Notification'
-
-// Remove this as it's not needed here
-// const Stack = createNativeStackNavigator();
 import config from '../configs/API'
+import CustomText from '../components/General/CustomText'
+
 const { USER_API } = config;
 const SectionsNav = ({ navigation }: { navigation: any }) => (
   <View style={styles.sectionsContainer}>
-    <Text style={styles.sectionTitle}>Sections</Text>
+    <CustomText style={styles.sectionTitle}>Sections</CustomText>
     <View style={styles.buttonsContainer}>
       <TouchableOpacity 
         style={styles.sectionButton}
         onPress={() => navigation.navigate('Browse')}
       >
-        <Text style={styles.buttonLabel}>Favourites</Text>
+        <CustomText style={styles.buttonLabel}>Favourites</CustomText>
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.sectionButton}
         onPress={() => navigation.navigate('Browse')}
       >
-        <Text style={styles.buttonLabel}>Updates</Text>
+        <CustomText style={styles.buttonLabel}>Updates</CustomText>
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.sectionButton}
         onPress={() => navigation.navigate('Browse')}
       >
-        <Text style={styles.buttonLabel}>Youtube</Text>
+        <CustomText style={styles.buttonLabel}>Youtube</CustomText>
       </TouchableOpacity>
     </View>
   </View>
@@ -70,9 +65,9 @@ const Home = ({navigation}:any) => {
                     <View style={styles.avatarContainer}>
                         <FontAwesome name="user-circle" size={40} color="#cfcfcf" />
                     </View>
-                    <Text style={styles.greeting}>
+                    <CustomText style={styles.greeting}>
                         Hi {userData?.name} 👋
-                    </Text>
+                    </CustomText>
                 </View>
                 <TouchableOpacity style={styles.notificationIcon}>
                     <Feather name="bell" size={24} color="#000" />
@@ -83,9 +78,9 @@ const Home = ({navigation}:any) => {
                 style={styles.updateContainer}
                 onPress={() => navigation.navigate('Notification')}
             >
-                <Text style={styles.updateText}>
+                <CustomText style={styles.updateText}>
                     New Video on Yash Aradhye Youtube Channel
-                </Text>
+                </CustomText>
             </TouchableOpacity>
 
             <View style={{ height: 250 }}>
@@ -113,7 +108,7 @@ const Home = ({navigation}:any) => {
                 />
                 
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                    <Text>Logout</Text>
+                    <CustomText>Logout</CustomText>
                 </TouchableOpacity>
             </View>
         </ScrollView>

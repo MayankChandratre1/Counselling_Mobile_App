@@ -1,8 +1,12 @@
-import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View, Image, Alert, Pressable } from 'react-native'
+import { Dimensions, StyleSheet, TextInput, TouchableOpacity, View, Image, Alert, Pressable } from 'react-native'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { storeUserData } from '../utils/storage';
 import React, { useState } from 'react'
 import config from '../configs/API';
+import CustomText from '../components/General/CustomText';
+import { FONTS } from '../styles/typography';
+import { globalStyles } from '../styles/globalStyles';
+import CustomTextInput from '../components/General/CustomTextInput';
 
 export const LoginScreen = ({navigation}:any) => {
   const [name, setName] = React.useState('');
@@ -13,6 +17,11 @@ export const LoginScreen = ({navigation}:any) => {
   const [otp, setOtp] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const validatePhone = (phoneNumber: string) => {
+    // Check if phone number is exactly 10 digits
+    return phoneNumber.length === 10 && /^\d{10}$/.test(phoneNumber);
+  };
 
   const handleLogin = async () => {
     if (!phone) {
@@ -52,6 +61,11 @@ export const LoginScreen = ({navigation}:any) => {
         return;
       }
       
+      if (!validatePhone(phone)) {
+        Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+        return;
+      }
+      
       try {
         const res = await fetch(`${config.USER_API}/ispremium`, {
           method: 'POST',
@@ -80,8 +94,13 @@ export const LoginScreen = ({navigation}:any) => {
       }
     } else {
       // Existing signup logic
-      if (!name || !phone) {
-        Alert.alert('Error', 'Please fill in all fields');
+      if (!name) {
+        Alert.alert('Error', 'Please enter your name');
+        return;
+      }
+      
+      if (!validatePhone(phone)) {
+        Alert.alert('Error', 'Please enter a valid 10-digit phone number');
         return;
       }
 
@@ -113,42 +132,60 @@ export const LoginScreen = ({navigation}:any) => {
         />
         
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>{
-          isPassword ? `Enter Your Password`:`Welcome,`  
-          }</Text>
-          {!isPassword && <Text style={styles.subtitle}>
-            To Maharashtra's Most Trusted Counselling Platform
-          </Text>}
+          <CustomText style={styles.welcomeText}>
+            {isPassword ? `Enter Your Password` : `Welcome,`}
+          </CustomText>
+          
+          {!isPassword && 
+            <CustomText style={styles.subtitle}>
+              To Maharashtra's Most Trusted Counselling Platform
+            </CustomText>
+          }
         </View>
 
         <View style={styles.formContainer}>
           {!isLogin && (
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your name"
-              value={name}
-              onChangeText={setName}
-            />
+            <View style={styles.inputGroup}>
+              <CustomText style={styles.inputLabel}>Full Name</CustomText>
+              <CustomTextInput
+                style={styles.input}
+                placeholder="Enter your name"
+                value={name}
+                onChangeText={setName}
+                placeholderTextColor="#999"
+              />
+            </View>
           )}
 
-          {!isPassword && <TextInput
-            style={[styles.input]}
-            placeholder="Enter your phone number"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />}
+          {!isPassword && (
+            <View style={styles.inputGroup}>
+              <CustomText style={styles.inputLabel}>Phone Number</CustomText>
+              <CustomTextInput
+                style={styles.input}
+                placeholder="Enter your phone number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                placeholderTextColor="#999"
+                maxLength={10} // Restrict to 10 characters
+                
+              />
+              <CustomText style={styles.helperText}>10-digit mobile number</CustomText>
+            </View>
+          )}
 
-          {
-            isPassword && (
+          {isPassword && (
+            <View style={styles.inputGroup}>
+              <CustomText style={styles.inputLabel}>Password</CustomText>
               <View style={styles.passwordContainer}>
-                <TextInput
-                  style={[styles.passwordInput, { fontSize: 24, paddingVertical: 10, letterSpacing: 2 }]}
+                <CustomTextInput
+                  style={styles.passwordInput}
                   contextMenuHidden
                   secureTextEntry={!showPassword}
-                  placeholder="*******"
+                  placeholder="Enter your password"
                   value={password}
                   onChangeText={setPassword}
+                  placeholderTextColor="#999"
                 />
                 <TouchableOpacity 
                   style={styles.eyeIcon}
@@ -161,42 +198,36 @@ export const LoginScreen = ({navigation}:any) => {
                   />
                 </TouchableOpacity>
               </View>
-            )
-          }
+            </View>
+          )}
 
-         {isPassword ? <TouchableOpacity
-            onPress={handleLogin}
-            style={styles.button}>
-            <Text style={styles.buttonText}>
-              {"Submit"}
-            </Text>
-          </TouchableOpacity>:
-          <TouchableOpacity
-          onPress={handleSubmit}
-          style={styles.button}>
-          <Text style={styles.buttonText}>
-            {isLogin ? 'Login' : 'Get Started'}
-          </Text>
-        </TouchableOpacity>
+          {isPassword ? 
+            <TouchableOpacity onPress={handleLogin} style={styles.button}>
+              <CustomText style={styles.buttonText}>Submit</CustomText>
+            </TouchableOpacity>
+            :
+            <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+              <CustomText style={styles.buttonText}>
+                {isLogin ? 'Login' : 'Get Started'}
+              </CustomText>
+            </TouchableOpacity>
           }
 
           <Pressable onPress={() => setIsLogin(!isLogin)} style={styles.toggleContainer}>
-            <Text style={styles.toggleText}>
+            <CustomText style={styles.toggleText}>
               {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
-            </Text>
+            </CustomText>
           </Pressable>
-
-          
         </View>
       </View>
 
       <View style={styles.termsContainer}>
-        <Text style={styles.termsText}>
+        <CustomText style={styles.termsText}>
           By continuing, you agree to our
-        </Text>
+        </CustomText>
         <View style={styles.termsLinksContainer}>
-          <Text style={styles.termsLink}>Terms & Conditions</Text>
-          <Text style={styles.termsLink}>Privacy Policy</Text>
+          <CustomText style={styles.termsLink}>Terms & Conditions</CustomText>
+          <CustomText style={styles.termsLink}>Privacy Policy</CustomText>
         </View>
       </View>
     </View>
@@ -235,6 +266,17 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
   },
+  inputGroup: {
+    marginBottom: 15,
+    width: '100%',
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
   input: {
     width: '100%',
     height: 50,
@@ -242,7 +284,10 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 10,
     paddingHorizontal: 15,
-    marginBottom: 15,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#333333',
+    fontFamily: FONTS.REGULAR,
   },
   button: {
     backgroundColor: '#613EEA',
@@ -295,16 +340,23 @@ const styles = StyleSheet.create({
   passwordInput: {
     width: '100%',
     height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
+    fontSize: 16,
     paddingHorizontal: 15,
-    paddingRight: 50, // Make room for the eye icon
+    paddingVertical: 10,
+    paddingRight: 50,
+    color: '#333333',
+    fontFamily: FONTS.REGULAR,
   },
   eyeIcon: {
     position: 'absolute',
     right: 15,
     top: 12,
     padding: 5,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    marginLeft: 4,
   },
 })

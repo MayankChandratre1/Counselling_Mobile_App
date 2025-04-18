@@ -1,25 +1,25 @@
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Image, StyleSheet, View, ScrollView } from 'react-native'
 import React from 'react'
-import Degree from '../assets/svg/Degree'
+import CustomText from '../components/General/CustomText'
+import { TouchableOpacity } from 'react-native'
+import { FONTS } from '../styles/typography'
+import { globalStyles } from '../styles/globalStyles'
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const scale = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) / 375; // Base scale factor
 
 const Screen1 = () => (
-  <View style={styles.screenContainer}>
-    <Text style={{
-        fontSize: 18,
-    }}>
-        Welcome to
-    </Text>
-    <Text style={styles.welcomeHeading}>
-       Maharashtra's 
-       <Text
-        style={{
-            color: '#006FFD',
-            fontWeight: 'bold',
-            textDecorationLine: 'underline'
-        }}
-       > Most Trusted </Text>
-       and Reliable Counselling Platform
-    </Text>
+  <ScrollView contentContainerStyle={styles.screenContentContainer}>
+    <CustomText style={styles.welcomeIntro}>
+      Welcome to
+    </CustomText>
+    <CustomText style={styles.welcomeHeading}>
+      Maharashtra's 
+      <CustomText
+        style={styles.trustedText}
+      > Most Trusted </CustomText>
+      and Reliable Counselling Platform
+    </CustomText>
     <View style={styles.imageContainer}>
       <Image 
         source={require('../assets/Yash_aaradhey-2.png')}
@@ -27,54 +27,50 @@ const Screen1 = () => (
         resizeMode="contain"
       />
     </View>
-  </View>
+  </ScrollView>
 );
 
 const Screen2 = () => (
-  <View style={styles.screen2Container}>
+  <ScrollView contentContainerStyle={styles.screenContentContainer}>
     <View style={styles.logoContainer}>
       <Image 
         source={require('../assets/Yash_aaradhey_logo.png')}
         style={styles.logo_screen2}
         resizeMode="contain"
       />
-      <View style={{
-        marginLeft: 20,
-      }}>
-        <View>
-            <Text style={{
-                fontSize: 18,
-            }}>
-                App By
-            </Text>  
-        </View>
-            <Text style={styles.logoText}>
-                Yash Aaradhey
-            </Text>
+      <View style={styles.logoTextContainer}>
+        <CustomText style={styles.appByText}>
+          App By
+        </CustomText>
+        <CustomText style={styles.logoText}>
+          Yash Aaradhey
+        </CustomText>
       </View>
     </View>
+    
+    <View style={styles.achievementsContainer}>
+      <CustomText style={styles.achievement}>100K+ on Youtube</CustomText>
+      <CustomText style={styles.achievement}>Helped 10K+ students</CustomText>
+      <CustomText style={styles.achievement}>Coding Courses</CustomText>
+    </View>
+    
     <Image 
       source={require('../assets/Yash_aaradhey.png')}
       style={styles.backgroundImage}
       resizeMode="contain"
     />
-    <View style={styles.achievementsContainer}>
-      <Text style={styles.achievement}>100K+ on Youtube</Text>
-      <Text style={styles.achievement}>Helped 10K+ students</Text>
-      <Text style={styles.achievement}>Coding Courses</Text>
-    </View>
-  </View>
+  </ScrollView>
 );
 
 const FeatureItem = ({ title }: { title: string }) => (
   <View style={styles.featureItem}>
-    <Text style={styles.featureText}>{title}</Text>
+    <CustomText style={styles.featureText}>{title}</CustomText>
   </View>
 );
 
 const Screen3 = () => (
-  <View style={styles.screenContainer}>
-    <Text style={styles.whyJoinUs}>Why Join Us?</Text>
+  <ScrollView contentContainerStyle={styles.screenContentContainer}>
+    <CustomText style={styles.whyJoinUs}>Why Join Us?</CustomText>
     <View style={styles.featuresContainer}>
       <FeatureItem title="College Description" />
       <FeatureItem title="College Fees" />
@@ -83,7 +79,7 @@ const Screen3 = () => (
       <FeatureItem title="Campus Details" />
       <FeatureItem title="Admission Process" />
     </View>
-  </View>
+  </ScrollView>
 );
 
 export const OnboardingScreen = ({ navigation, route }:any) => {
@@ -107,7 +103,7 @@ export const OnboardingScreen = ({ navigation, route }:any) => {
           style={styles.skipButton}
           onPress={() => navigation.navigate('Login')}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <CustomText style={styles.skipButtonText}>Skip</CustomText>
         </TouchableOpacity>
 
         <View style={styles.dotContainer}>
@@ -129,9 +125,9 @@ export const OnboardingScreen = ({ navigation, route }:any) => {
             }
           }}
         >
-          <Text style={styles.nextButtonText}>
-            {step === 3 ? 'Next' : 'Next'}
-          </Text>
+          <CustomText style={styles.nextButtonText}>
+            {step === 3 ? 'Get Started' : 'Next'}
+          </CustomText>
         </TouchableOpacity>
       </View>
     </View>
@@ -139,216 +135,175 @@ export const OnboardingScreen = ({ navigation, route }:any) => {
 };
 
 const styles = StyleSheet.create({
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#ffffff',
+    fontFamily: FONTS.REGULAR,
+  },
+  screenContentContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 80,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: {
-    width: 200,
-    height: 200,
-  },
-  logo_screen2: {
-    width: 100,
-    height: 100,
-  },
-  onboardingImage: {
-    width: Dimensions.get('window').width * 0.8,
-    height: Dimensions.get('window').height * 0.4,
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  welcomeIntro: {
+    fontSize: 18 * scale,
     marginBottom: 10,
-    textAlign: 'center',
+    fontFamily: FONTS.REGULAR,
+    color: '#333333',
   },
-  description: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#666',
-    marginBottom: 30,
-  },
-  dotContainer: {
-    flex:1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginBottom: 30,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ddd',
-    marginHorizontal: 5,
-  },
-  activeDot: {
-    backgroundColor: '#000',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    width: '80%',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
+  trustedText: {
+    color: '#006FFD',
     fontWeight: 'bold',
-  },
-  welcomeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-  screenContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    textDecorationLine: 'underline',
+    fontFamily: FONTS.BOLD,
   },
   welcomeHeading: {
-    fontSize: 36,
+    fontSize: Math.min(36 * scale, 42),
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+    lineHeight: Math.min(42 * scale, 48),
+    fontFamily: FONTS.BOLD,
+    color: '#333333',
   },
   imageContainer: {
     backgroundColor: '#64A6FA99',
-    borderRadius: 200,
-    padding: 20,
+    borderRadius: Math.min(SCREEN_WIDTH * 0.4, 200),
+    width: Math.min(SCREEN_WIDTH * 0.8, 300),
+    height: Math.min(SCREEN_WIDTH * 0.8, 300),
     overflow: 'hidden',
-    width: 300,
-    height: 300,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
   },
   roundedImage: {
-    width: 350,
-    height: 350,
-    objectFit: 'cover',
-  },
-  screen2Container: {
-    flex: 1,
     width: '100%',
-    opacity: 0.9,
+    height: '100%',
   },
   logoContainer: {
     alignItems: 'center',
     flexDirection: 'row',
-    marginTop: 40,
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  logo_screen2: {
+    width: Math.min(SCREEN_WIDTH * 0.25, 100),
+    height: Math.min(SCREEN_WIDTH * 0.25, 100),
+  },
+  logoTextContainer: {
+    marginLeft: 20,
+  },
+  appByText: {
+    fontSize: 16 * scale,
+    fontFamily: FONTS.REGULAR,
   },
   logoText: {
-    fontSize: 32,
+    fontSize: Math.min(32 * scale, 36),
     fontWeight: 'bold',
-    flexDirection: 'column',  
-    color:"#006FFD"  
+    color: "#006FFD",
+    fontFamily: FONTS.BOLD,
   },
   backgroundImage: {
     position: 'absolute',
-    bottom: 24,
-    height: 600,
-    width: '130%',
-    objectFit: 'cover',
-    opacity: 1,
-    left: -70,
+    bottom: 0,
+    width: SCREEN_WIDTH * 1.3,
+    height: SCREEN_HEIGHT * 0.5,
+    opacity: 0.7,
     zIndex: -1,
   },
   achievementsContainer: {
-    padding: 20,
-    position: 'absolute',
-    bottom: 24,
     width: '100%',
-    zIndex: 1,
+    marginBottom: 20,
   },
   achievement: {
-    fontSize: 24,
+    fontSize: Math.min(24 * scale, 28),
     fontWeight: 'bold',
-    color:"#fff",
+    color: "#fff",
     marginVertical: 10,
     textAlign: 'center',
-    width: '100%',
     backgroundColor: '#64a6fa',
-    padding:20,
+    padding: 16,
     borderRadius: 20,
   },
   whyJoinUs: {
-    fontSize: 24,
+    fontSize: Math.min(24 * scale, 28),
     fontWeight: 'bold',
     marginBottom: 30,
-    color:"#64A6FA",
+    color: "#64A6FA",
+    fontFamily: FONTS.BOLD,
   },
   featuresContainer: {
     width: '100%',
-    paddingHorizontal: 40,
   },
   featureItem: {
-   
     marginVertical: 10,
-    textAlign: 'center',
-    width: '100%',
     backgroundColor: '#64A6FA',
-    padding:20,
+    padding: 16,
     borderRadius: 20,
   },
   featureText: {
-    marginLeft: 15,
-    fontSize: 20,
+    fontSize: Math.min(18 * scale, 20),
     fontWeight: 'bold',
-    color:"#fff",
+    textAlign: 'center',
+    color: "#fff",
+    fontFamily: FONTS.BOLD,
   },
   navigationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
     paddingHorizontal: 20,
-    marginBottom: 30,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   skipButton: {
-    backgroundColor: '#64A6FA99',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: '#64A6FA30',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   skipButtonText: {
     color: '#666',
-    fontSize: 16,
+    fontSize: 14 * scale,
+    fontFamily: FONTS.REGULAR,
+  },
+  dotContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: '#64A6FA',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   nextButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   nextButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14 * scale,
     fontWeight: 'bold',
-  }
+    fontFamily: FONTS.BOLD,
+  },
 });

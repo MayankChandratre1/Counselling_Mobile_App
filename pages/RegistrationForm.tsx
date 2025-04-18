@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Pressable } from 'react-native'
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Pressable, Alert, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import TopBar from '../components/General/TopBar'
 import { Picker } from '@react-native-picker/picker'
@@ -6,59 +6,90 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Icon from 'react-native-vector-icons/Ionicons'
 import config from '../configs/API'
 import { getUserData } from '../utils/storage'
+import { RequestMethod, secureRequest } from '../utils/tokenedRequest'
+import { FONTS } from '../styles/typography'
+import { globalStyles } from '../styles/globalStyles'
+import CustomText from '../components/General/CustomText'
+import CustomTextInput from '../components/General/CustomTextInput'
 
 // Move InputWithLabel outside the main component
 const InputWithLabel = ({ label, ...props }: any) => (
   <View style={styles.inputGroup}>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput
-      style={styles.input}
+    <CustomText style={styles.label}>{label}</CustomText>
+    <CustomTextInput
+      style={[styles.input, globalStyles.input]}
       placeholderTextColor="#999"
       {...props}
     />
   </View>
 )
 
-const RegistrationForm = ({ route, navigation }: any) => {
-  const [step, setStep] = useState(1)
-  const [planDetails, setPlanDetails] = useState<any>(null)
-  const [formData, setFormData] = useState({
-    // Step 1
-    fullName: '',
-    dob: '',
-    mobile: '',
-    email: '',
-    city: '',
-    state: '',
-    
-    // Step 2
-    boardMarks: '',
-    boardType: 'State Board',
-    jeeMarks: '',
-    cetMarks: '',
-    preferredField: 'Computer Science',
-    cetSeatNumber: '',
-    jeeSeatNumber: '',
-    
-    // Step 3
-    preferredLocations: '',
-    budget: 'under 1L',
-    password: '',
-    confirmPassword: '',
-    termsAccepted: false
-  })
+interface RegistrationFormProps {
+  route: {
+    params: {
+      planDetails?: any;
+      isUpdatePlanDetails?: boolean;
+    };
+  };
+  navigation: any;
+}
+
+interface FormField {
+  id: string;
+  type: 'text' | 'date' | 'email' | 'number' | 'select' | 'password' | 'checkbox';
+  label: string;
+  key: string;
+  required: boolean;
+  options?: string[];
+  editable?: boolean;
+}
+
+interface FormStep {
+  title: string;
+  fields: FormField[];
+}
+
+interface FormData {
+  steps: FormStep[];
+  updatedAt: string;
+}
+
+const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
+  const [step, setStep] = useState(1);
+  const [planDetails, setPlanDetails] = useState<any>(null);
+  const [formStructure, setFormStructure] = useState<FormStep[]>([]);
+  const [formData, setFormData] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const getMobile = async () => {
-      const userData = await AsyncStorage.getItem('userData')
-      if (userData) {
-        const { phone } = JSON.parse(userData)
-        setFormData(prev => ({ ...prev, mobile: phone }))
+    const fetchFormData = async () => {
+      try {
+        setLoading(true);
+        const response = await secureRequest<any>(`${config.USER_API}/registrationForm`, RequestMethod.GET);
+        if (response.data) {
+          setFormStructure(response.data.formData.steps);
+          // Pre-fill form if userData exists
+          console.log('Form Data:', response.data);
+          console.log('Form Structure:', response.data.formData.steps);
+          
+          if (response.data.userData) {
+            setFormData(response.data.userData);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching form data:', err);
+        Alert.alert('Error', 'Failed to load form. Please try again.');
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (route.params?.isUpdatePlanDetails) {
+      setPlanDetails(route.params.planDetails);
     }
-    setPlanDetails(route.params.planDetails);
-    getMobile()
-  }, [])
+    fetchFormData();
+  }, []);
 
   const handleBack = () => {
     if (step > 1) {
@@ -73,233 +104,140 @@ const RegistrationForm = ({ route, navigation }: any) => {
   }
 
   const handleFinish = async () => {
-    console.log('Form Data:', formData)
-    const user = await getUserData()
-    // Here add your API call and navigation logic
-   try{
-    const res = await fetch(`${config.USER_API}/${user.id}/premium`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    try {
+      setSubmitting(true);
+      const user = await getUserData();
+      const endpoint = route.params?.isUpdatePlanDetails ? 
+        `${config.USER_API}/${user.id}/premium` :
+        `${config.USER_API}/${user.id}/updateCounsellingData`;
+      
+      const method = route.params?.isUpdatePlanDetails ? 'PATCH' : 'PUT';
+      const body = route.params?.isUpdatePlanDetails ? {
         planTitle: planDetails.plan,
-        expiryDate: new Date(Date.now() + 30*24*60*60*1000),//1 month
+        expiryDate: new Date(Date.now() + 30*24*60*60*1000),
         registrationData: formData
-      }),
-    })
+      } : {
+        registrationData: formData
+      };
 
-    const data = await res.json()
-    console.log(data)
+      const { data, error } = await secureRequest(endpoint, method as RequestMethod, {
+        body
+      });
 
-    const storedData = await getUserData()
-    console.log(storedData);
-    
+      if (error) throw new Error(error);
 
-    navigation.navigate({
-      name: 'Home',
-      params: { planDetails: planDetails },
-      merge: true,
-    })
-   }catch(err){
-      console.log(err);
-   }
-    
-  }
+      navigation.navigate(route.params?.isUpdatePlanDetails ? 'Home' : 'Counselling');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update data');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  // Create a memoized update function
-  const handleInputChange = React.useCallback((field: string, value: string) => {
-    setFormData(prev => ({
+  const handleInputChange = React.useCallback((field: string, value: string | boolean) => {
+    setFormData((prev:any) => ({
       ...prev,
       [field]: value
     }))
   }, [])
 
-  const renderStep1 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Basic Information</Text>
-      
-      <InputWithLabel
-        label="Full Name"
-        value={formData.fullName}
-        onChangeText={(text: string) => handleInputChange('fullName', text)}
-        placeholder="Enter your full name"
-      />
+  const renderField = (field: FormField) => {
+    // Skip password fields if not updating plan
+    if (!route.params?.isUpdatePlanDetails && 
+        (field.key === 'password' || field.key === 'confirmPassword')) {
+      return null;
+    }
 
-      <InputWithLabel
-        label="Date of Birth"
-        value={formData.dob}
-        onChangeText={(text: string) => handleInputChange('dob', text)}
-        placeholder="DD/MM/YYYY"
-      />
+    switch (field.type) {
+      case 'select':
+        return (
+          <View style={styles.inputGroup}>
+            <CustomText style={styles.label}>{field.label}</CustomText>
+            <View style={[styles.pickerContainer, globalStyles.pickerContainer]}>
+              <Picker
+                selectedValue={formData[field.key]}
+                onValueChange={(value) => handleInputChange(field.key, value)}
+                style={{ color: '#333333', fontFamily: FONTS.REGULAR }}
+                dropdownIconColor="#333333"
+              >
+                {field.options?.map((option) => (
+                  <Picker.Item 
+                    key={option} 
+                    label={option} 
+                    value={option} 
+                    color="#333333" 
+                    style={{ fontFamily: FONTS.REGULAR }}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        );
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Mobile Number</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: '#f5f5f5' }]}
-          value={formData.mobile}
-          editable={false}
-        />
+      case 'checkbox':
+        return (
+          <View style={styles.termsContainer}>
+            <TouchableOpacity 
+              style={styles.checkbox}
+              onPress={() => handleInputChange(field.key, !formData[field.key])}
+            >
+              {formData[field.key] && (
+                <Icon name="checkmark" size={20} color="#613EEA" />
+              )}
+            </TouchableOpacity>
+            <CustomText style={styles.termsText}>{field.label}</CustomText>
+          </View>
+        );
+
+      default:
+        return (
+          <InputWithLabel
+            label={field.label}
+            value={formData[field.key]?.toString()}
+            onChangeText={(text: string) => handleInputChange(field.key, text)}
+            placeholder={`Enter your ${field.label.toLowerCase()}`}
+            keyboardType={field.type === 'number' ? 'numeric' : 'default'}
+            secureTextEntry={field.type === 'password'}
+            editable={field.editable !== false}
+            style={[
+              styles.input,
+              field.editable === false && { backgroundColor: '#f5f5f5' }
+            ]}
+            color="#333333"
+          />
+        );
+    }
+  };
+
+  const renderStepContent = () => {
+    if (!formStructure[step - 1]) return null;
+    
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.stepTitle}>{formStructure[step - 1].title}</Text>
+        {formStructure[step - 1].fields.map((field) => renderField(field))}
       </View>
+    );
+  };
 
-      <InputWithLabel
-        label="Email"
-        value={formData.email}
-        onChangeText={(text: string) => handleInputChange('email', text)}
-        placeholder="Enter your email"
-        keyboardType="email-address"
-      />
-
-      <InputWithLabel
-        label="City"
-        value={formData.city}
-        onChangeText={(text: string) => handleInputChange('city', text)}
-        placeholder="Enter your city"
-      />
-
-      <InputWithLabel
-        label="State"
-        value={formData.state}
-        onChangeText={(text: string) => handleInputChange('state', text)}
-        placeholder="Enter your state"
-      />
-    </View>
-  )
-
-  const renderStep2 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Academic Information</Text>
-
-      <InputWithLabel
-        label="12th Board Marks"
-        value={formData.boardMarks}
-        onChangeText={(text: string) => handleInputChange('boardMarks', text)}
-        placeholder="Enter your board marks"
-        keyboardType="numeric"
-      />
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Board Type</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={formData.boardType}
-            onValueChange={(value) => handleInputChange('boardType', value)}
-          >
-            <Picker.Item label="State Board" value="State Board" />
-            <Picker.Item label="CBSC" value="CBSC" />
-            <Picker.Item label="ICSE" value="ICSE" />
-          </Picker>
-        </View>
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#613EEA" />
+        <CustomText style={styles.loadingText}>Loading form...</CustomText>
       </View>
-
-      <InputWithLabel
-        label="JEE Marks"
-        value={formData.jeeMarks}
-        onChangeText={(text: string) => handleInputChange('jeeMarks', text)}
-        placeholder="Enter your JEE marks"
-        keyboardType="numeric"
-      />
-
-      <InputWithLabel
-        label="CET Marks"
-        value={formData.cetMarks}
-        onChangeText={(text: string) => handleInputChange('cetMarks', text)}
-        placeholder="Enter your CET marks"
-        keyboardType="numeric"
-      />
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Preferred Field</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={formData.preferredField}
-            onValueChange={(value) => handleInputChange('preferredField', value)}
-          >
-            <Picker.Item label="Computer Science" value="Computer Science" />
-            <Picker.Item label="Other" value="Other" />
-          </Picker>
-        </View>
-      </View>
-
-      <InputWithLabel
-        label="CET Seat Number"
-        value={formData.cetSeatNumber}
-        onChangeText={(text: string) => handleInputChange('cetSeatNumber', text)}
-        placeholder="Enter your CET seat number"
-      />
-
-      <InputWithLabel
-        label="JEE Seat Number"
-        value={formData.jeeSeatNumber}
-        onChangeText={(text: string) => handleInputChange('jeeSeatNumber', text)}
-        placeholder="Enter your JEE seat number"
-      />
-    </View>
-  )
-
-  const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Preferences and Goals</Text>
-
-      <InputWithLabel
-        label="Preferred Locations"
-        value={formData.preferredLocations}
-        onChangeText={(text: string) => handleInputChange('preferredLocations', text)}
-        placeholder="Enter locations (separated by comma)"
-      />
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Budget</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={formData.budget}
-            onValueChange={(value) => handleInputChange('budget', value)}
-          >
-            <Picker.Item label="Under 1L" value="under 1L" />
-            <Picker.Item label="1L - 2L" value="1L-2L" />
-            <Picker.Item label="Other" value="Other" />
-          </Picker>
-        </View>
-      </View>
-
-      <InputWithLabel
-        label="Password"
-        value={formData.password}
-        onChangeText={(text: string) => handleInputChange('password', text)}
-        placeholder="Enter your password"
-        secureTextEntry
-      />
-
-      <InputWithLabel
-        label="Confirm Password"
-        value={formData.confirmPassword}
-        onChangeText={(text: string) => handleInputChange('confirmPassword', text)}
-        placeholder="Confirm your password"
-        secureTextEntry
-      />
-
-      <View style={styles.termsContainer}>
-        <TouchableOpacity 
-          style={styles.checkbox}
-          onPress={() => setFormData(prev => ({
-            ...prev, 
-            termsAccepted: !prev.termsAccepted
-          }))}
-        >
-          {formData.termsAccepted && (
-            <Icon name="checkmark" size={20} color="#613EEA" />
-          )}
-        </TouchableOpacity>
-        <Text style={styles.termsText}>I agree to the Terms and Conditions</Text>
-      </View>
-    </View>
-  )
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={handleBack} style={styles.backButton}>
-          <Icon name="arrow-back" size={24} color="#000" />
+        <Pressable 
+          onPress={handleBack} 
+          style={styles.backButton}
+          disabled={submitting}
+        >
+          <Icon name="arrow-back" size={24} color={submitting ? "#999" : "#000"} />
         </Pressable>
       </View>
 
@@ -310,18 +248,21 @@ const RegistrationForm = ({ route, navigation }: any) => {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
+        {renderStepContent()}
       </ScrollView>
 
       <TouchableOpacity 
-        style={styles.button}
+        style={[styles.button, submitting && styles.buttonDisabled]}
         onPress={step === 3 ? handleFinish : handleNext}
+        disabled={submitting}
       >
-        <Text style={styles.buttonText}>
-          {step === 3 ? 'Get Started' : 'Next'}
-        </Text>
+        {submitting ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>
+            {step === 3 ? (route.params?.isUpdatePlanDetails ? 'Get Started' : 'Update Details') : 'Next'}
+          </Text>
+        )}
       </TouchableOpacity>
     </View>
   )
@@ -380,6 +321,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 8,
     marginLeft: 4,
+    fontFamily: FONTS.MEDIUM,
   },
   input: {
     borderWidth: 1,
@@ -390,6 +332,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: 56,
     backgroundColor: '#fff',
+    color: '#333333',
+    fontFamily: FONTS.REGULAR,
   },
   pickerContainer: {
     borderWidth: 1,
@@ -407,6 +351,7 @@ const styles = StyleSheet.create({
   termsText: {
     color: '#666',
     flex: 1,
+    fontFamily: FONTS.REGULAR,
   },
   button: {
     backgroundColor: '#613EEA',
@@ -429,6 +374,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#613EEA',
+    fontSize: 16,
+  },
+  buttonDisabled: {
+    backgroundColor: '#9E9E9E',
   },
 })
 

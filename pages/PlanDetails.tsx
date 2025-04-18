@@ -19,7 +19,8 @@ type RootStackParamList = {
       plan: string;
       price: string;
       expiry: number | null;
-  }
+  },
+    isUpdatePlanDetails: boolean;
   };
   Counselling: {
     selectedPlan?: string;
@@ -46,7 +47,8 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
     }
     await AsyncStorage.setItem('plan', JSON.stringify(data));
     navigation.navigate('RegistrationForm', {
-      planDetails: data
+      planDetails: data,
+      isUpdatePlanDetails: true,
     });
   }
 

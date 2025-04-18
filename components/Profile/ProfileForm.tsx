@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#333',
+    color: '#000',
   },
   inputDisabled: {
     backgroundColor: '#fff',

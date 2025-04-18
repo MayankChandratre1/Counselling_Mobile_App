@@ -1,7 +1,9 @@
-import { StyleSheet, Text, View, TouchableOpacity, TextInput } from 'react-native'
+import { StyleSheet, View, TouchableOpacity, TextInput } from 'react-native'
 import React from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
+import CustomText from '../General/CustomText'
 import { Picker } from '@react-native-picker/picker';
+import CustomTextInput from '../General/CustomTextInput';
 
 interface CounsellingStepProps {
   title: string;
@@ -18,6 +20,13 @@ interface CounsellingStepProps {
     remark: string;
   };
   isCompleted?: boolean;
+  isLocked?: boolean;
+  description?: string;
+}
+
+interface RadioOption {
+  label: string;
+  value: 'Yes' | 'No';
 }
 
 const CounsellingStep = ({ 
@@ -29,115 +38,142 @@ const CounsellingStep = ({
   isEditing,
   stepData = { status: undefined, remark: '' },
   isCompleted = false,
+  isLocked = false,
+  description,
 }: CounsellingStepProps) => {
   const [inputData, setInputData] = React.useState({
     status: stepData.status || 'No',
     remark: stepData.remark || ''
   });
 
+  const statusOptions: RadioOption[] = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' }
+  ];
+
   const getStepStyle = () => {
-    if (stepData?.status === 'No') {
-      return [styles.container, styles.containerRejected];
-    }
-    if (stepData?.status === 'Yes') {
-      return [styles.container, styles.containerCompleted];
-    }
+    if (isLocked) return [styles.container, styles.containerLocked];
+    if (stepData?.status === 'No') return [styles.container, styles.containerRejected];
+    if (stepData?.status === 'Yes') return [styles.container, styles.containerCompleted];
     return [styles.container];
   };
 
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingInline: 15 }}>
-      <View style={{ width: "10%", borderRadius: 8, paddingInline: 10, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={styles.stepWrapper}>
+      <View style={styles.stepNumberContainer}>
         <View style={[
           styles.stepNumber,
           stepData?.status === 'Yes' && styles.stepNumberCompleted,
-          stepData?.status === 'No' && styles.stepNumberRejected
+          stepData?.status === 'No' && styles.stepNumberRejected,
+          isLocked && styles.stepNumberLocked,
         ]}>
-          <Text style={styles.stepNumberText}>{stepNumber}</Text>
+          {isLocked ? (
+            <Icon name="lock" size={20} color="#fff" />
+          ) : (
+            <CustomText style={styles.stepNumberText}>{stepNumber}</CustomText>
+          )}
         </View>
       </View>
 
-      <View style={{ padding: 15, width: '90%' }}>
+      <View style={styles.contentWrapper}>
         <View style={getStepStyle()}>
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.header}>
+            <CustomText style={styles.title}>{title}</CustomText>
+            {isLocked && (
+              <CustomText style={styles.comingSoon}>Coming Soon</CustomText>
+            )}
+          </View>
+
+          {description && (
+            <CustomText style={styles.description}>{description}</CustomText>
+          )}
           
-          {!isEditing && (
+          {!isLocked && (
             <>
               <View style={styles.statusContainer}>
-                <Text style={styles.statusLabel}>STATUS:</Text>
-                <Text style={[
+                <CustomText style={styles.statusLabel}>STATUS:</CustomText>
+                <CustomText style={[
                   styles.statusValue,
                   stepData?.status === 'No' && styles.statusValueRejected,
                   stepData?.status === 'Yes' && styles.statusValueCompleted,
                   !stepData?.status && styles.statusValuePending
                 ]}>
                   {stepData?.status || ' Edit your status'}
-                </Text>
+                </CustomText>
               </View>
               {stepData?.remark && (
-                <Text style={[
+                <CustomText style={[
                   styles.remarkText,
                   stepData?.status === 'No' && styles.remarkTextRejected
                 ]}>
                   {stepData.remark}
-                </Text>
+                </CustomText>
               )}
+
+              {isEditing && (
+                <View style={styles.inputContainer}>
+                  <View style={styles.radioContainer}>
+                    <CustomText style={styles.inputLabel}>Status</CustomText>
+                    <View style={styles.radioGroup}>
+                      {statusOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={styles.radioOption}
+                          onPress={() => setInputData(prev => ({...prev, status: option.value}))}
+                        >
+                          <View style={styles.radio}>
+                            {inputData.status === option.value && (
+                              <View style={styles.radioSelected} />
+                            )}
+                          </View>
+                          <CustomText style={styles.radioLabel}>{option.label}</CustomText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.textInputContainer}>
+                    <CustomText style={styles.inputLabel}>Remarks</CustomText>
+                    <CustomTextInput
+                      style={styles.input}
+                      value={inputData.remark}
+                      onChangeText={(text) => setInputData(prev => ({...prev, remark: text}))}
+                      placeholder="Add your remarks here..."
+                      placeholderTextColor="#999"
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.footer}>
+                {leftCTA && !isEditing && (
+                  <TouchableOpacity 
+                    style={{ flexDirection: 'row', alignItems: 'center' }} 
+                    onPress={leftCTA.onPress}
+                  >
+                    <Icon name="clipboard-text-multiple-outline" size={16} style={{marginRight: 10}} color="#613EEA" />
+                    <CustomText style={styles.leftCTA}>{leftCTA.label}</CustomText>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity 
+                  style={[styles.editButton, { marginLeft: 'auto' }]}
+                  onPress={isEditing ? 
+                    () => onSave(stepNumber, inputData) : 
+                    onEdit}
+                >
+                  <Icon 
+                    name={isEditing ? "check-circle-outline" : "application-edit-outline"} 
+                    size={24} 
+                    color="#613EEA" 
+                  />
+                </TouchableOpacity>
+              </View>
             </>
           )}
-
-          {isEditing && (
-            <View style={styles.inputContainer}>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.inputLabel}>Status:</Text>
-                <Picker
-                  selectedValue={inputData.status}
-                  onValueChange={(value) => setInputData(prev => ({...prev, status: value}))}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Yes" value="Yes" />
-                  <Picker.Item label="No" value="No" />
-                </Picker>
-              </View>
-
-              <View style={styles.textInputContainer}>
-                <Text style={styles.inputLabel}>Remarks:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={inputData.remark}
-                  onChangeText={(text) => setInputData(prev => ({...prev, remark: text}))}
-                  placeholder="Enter remarks..."
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
-            </View>
-          )}
-
-          <View style={styles.footer}>
-            {leftCTA && !isEditing && (
-              <TouchableOpacity 
-                style={{ flexDirection: 'row', alignItems: 'center' }} 
-                onPress={leftCTA.onPress}
-              >
-                <Icon name="clipboard-text-multiple-outline" size={16} style={{marginRight: 10}} color="#613EEA" />
-                <Text style={styles.leftCTA}>{leftCTA.label}</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity 
-              style={[styles.editButton, { marginLeft: 'auto' }]}
-              onPress={isEditing ? 
-                () => onSave(stepNumber, inputData) : 
-                onEdit}
-            >
-              <Icon 
-                name={isEditing ? "check-circle-outline" : "application-edit-outline"} 
-                size={24} 
-                color="#613EEA" 
-              />
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     </View>
@@ -149,8 +185,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#613EEA',
     borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
+    padding: 20, // Increased from 15
+    marginBottom: 20, // Increased from 15
     backgroundColor: '#fff',
     shadowColor: "#000",
     shadowOffset: {
@@ -163,21 +199,30 @@ const styles = StyleSheet.create({
   },
   containerCompleted: {
     borderColor: '#4CAF50',
-    backgroundColor: '#F9FBE7',
+    borderWidth: 2,
+    // backgroundColor: '#F9FBE7',
   },
   containerRejected: {
     borderColor: '#F44336',
-    backgroundColor: '#FFF5F5',
+    borderWidth: 2,
+    // backgroundColor: '#FFF5F5',
+  },
+  containerLocked: {
+    borderColor: '#9E9E9E',
+    backgroundColor: '#F5F5F5',
+    opacity: 0.8,
   },
   title: {
-    fontSize: 18,
+    fontSize: 22, // Increased from 18
     fontWeight: 'bold',
     color: '#000',
+    // marginBottom: 12, // Added margin
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+  
+    borderRadius: 8,
   },
   statusLabel: {
     color: '#613EEA',
@@ -212,10 +257,56 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   inputContainer: {
-    marginTop: 12,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    padding: 4,
+    marginTop: 16,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: 12,
+  },
+  radioContainer: {
+    marginBottom: 16,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 20,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#613EEA',
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioSelected: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#613EEA',
+  },
+  radioLabel: {
+    fontSize: 16,
+    color: '#333',
+  },
+  textInputContainer: {
+    marginTop: 8,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  picker: {
+    height: 48,
+    width: '100%',
   },
   input: {
     borderWidth: 1,
@@ -223,15 +314,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    minHeight: 100,
+    minHeight: 120,
     backgroundColor: '#fff',
+    color: '#333',
+    textAlignVertical: 'top',
+    marginTop: 8,
   },
   stepNumber: {
     paddingInline: 10,
     backgroundColor: '#613EEA',
     borderRadius: 25,
-    width: 50,
-    height: 50,
+    width: 56, // Increased size
+    height: 56, // Increased size
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -241,9 +335,12 @@ const styles = StyleSheet.create({
   stepNumberRejected: {
     backgroundColor: '#F44336',
   },
+  stepNumberLocked: {
+    backgroundColor: '#9E9E9E',
+  },
   stepNumberText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 28, // Increased from 24
     fontWeight: 'bold'
   },
   remarkText: {
@@ -255,21 +352,35 @@ const styles = StyleSheet.create({
   remarkTextRejected: {
     color: '#F44336',
   },
-  pickerContainer: {
-    marginBottom: 16,
+  stepWrapper: {
+    flexDirection: 'row',
+    paddingHorizontal: 15,
+    marginBottom: 20, // Increased spacing between steps
   },
-  textInputContainer: {
-    marginTop: 8,
+  stepNumberContainer: {
+    width: "10%",
+    alignItems: 'center',
   },
-  inputLabel: {
-    fontSize: 14,
+  contentWrapper: {
+    flex: 1,
+    paddingLeft: 15,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  comingSoon: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    fontStyle: 'italic',
+  },
+  description: {
+    fontSize: 15, // Increased from 14
     color: '#666',
-    marginBottom: 4,
-  },
-  picker: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginTop: 4,
+    marginBottom: 15, // Increased from 12
+    lineHeight: 22, // Increased from 20
   },
 })
 
