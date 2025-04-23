@@ -1,4 +1,4 @@
-import { StyleSheet, View, TouchableOpacity, TextInput } from 'react-native'
+import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import React from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import CustomText from '../General/CustomText'
@@ -6,22 +6,31 @@ import { Picker } from '@react-native-picker/picker';
 import CustomTextInput from '../General/CustomTextInput';
 
 interface CounsellingStepProps {
-  title: string;
   leftCTA?: {
     label: string;
     onPress: () => void;
   };
   onEdit: () => void;
-  stepNumber: number;
-  onSave: (stepNumber: number, data: { status: 'Yes' | 'No', remark: string }) => void;
+  onSave: (stepNumber: number, data: any) => void;
   isEditing?: boolean;
   stepData?: {
     status: 'Yes' | 'No' | undefined;
     remark: string;
+    collegeName?: string;
+    branchCode?: string;
+    verdict?: string;
+    accept?: boolean;  // Flag to track if verdict is accepted
   };
   isCompleted?: boolean;
-  isLocked?: boolean;
-  description?: string;
+  step: {
+    number: number;
+    title: string;
+    description?: string;
+    isLocked?: boolean;
+    isCapQuery?: boolean;
+    isVerdict?: boolean;
+    showListButton?: boolean;
+  };
 }
 
 interface RadioOption {
@@ -30,20 +39,20 @@ interface RadioOption {
 }
 
 const CounsellingStep = ({ 
-  title, 
   leftCTA, 
-  stepNumber,
   onEdit,
   onSave,
   isEditing,
   stepData = { status: undefined, remark: '' },
   isCompleted = false,
-  isLocked = false,
-  description,
+  step
 }: CounsellingStepProps) => {
   const [inputData, setInputData] = React.useState({
     status: stepData.status || 'No',
-    remark: stepData.remark || ''
+    remark: stepData.remark || '',
+    collegeName: stepData.collegeName || '',
+    branchCode: stepData.branchCode || '',
+    verdict: stepData.verdict || '' // Preserve verdict in state
   });
 
   const statusOptions: RadioOption[] = [
@@ -52,10 +61,37 @@ const CounsellingStep = ({
   ];
 
   const getStepStyle = () => {
-    if (isLocked) return [styles.container, styles.containerLocked];
+    if (step.isLocked) return [styles.container, styles.containerLocked];
     if (stepData?.status === 'No') return [styles.container, styles.containerRejected];
     if (stepData?.status === 'Yes') return [styles.container, styles.containerCompleted];
     return [styles.container];
+  };
+
+  const isVerdictAccepted = step.isVerdict && stepData?.accept === true;
+
+  const handleVerdictAccept = () => {
+    if (leftCTA && step.isVerdict && stepData?.verdict) {
+      leftCTA.onPress();
+    }
+  };
+
+  const handleVerdictReject = () => {
+    // Create data object with accept set to false
+    const rejectedData = {
+      ...stepData,
+      accept: false
+    };
+    onSave(step.number, rejectedData);
+  };
+
+  const handleSaveData = () => {
+    // Create data object preserving the verdict if present
+    const dataToSave = {
+      ...inputData,
+      // Ensure verdict is preserved if it already exists
+      verdict: stepData.verdict || inputData.verdict
+    };
+    onSave(step.number, dataToSave);
   };
 
   return (
@@ -65,12 +101,12 @@ const CounsellingStep = ({
           styles.stepNumber,
           stepData?.status === 'Yes' && styles.stepNumberCompleted,
           stepData?.status === 'No' && styles.stepNumberRejected,
-          isLocked && styles.stepNumberLocked,
+          step.isLocked && styles.stepNumberLocked,
         ]}>
-          {isLocked ? (
+          {step.isLocked ? (
             <Icon name="lock" size={20} color="#fff" />
           ) : (
-            <CustomText style={styles.stepNumberText}>{stepNumber}</CustomText>
+            <CustomText style={styles.stepNumberText}>{step.number}</CustomText>
           )}
         </View>
       </View>
@@ -78,17 +114,22 @@ const CounsellingStep = ({
       <View style={styles.contentWrapper}>
         <View style={getStepStyle()}>
           <View style={styles.header}>
-            <CustomText style={styles.title}>{title}</CustomText>
-            {isLocked && (
+            <CustomText style={styles.title}>{step.title}</CustomText>
+            {step.isLocked && (
               <CustomText style={styles.comingSoon}>Coming Soon</CustomText>
+            )}
+            {isVerdictAccepted && (
+              <View style={styles.acceptedBadge}>
+                <CustomText style={styles.acceptedText}>Accepted</CustomText>
+              </View>
             )}
           </View>
 
-          {description && (
-            <CustomText style={styles.description}>{description}</CustomText>
+          {step.description && (
+            <CustomText style={styles.description}>{step.description}</CustomText>
           )}
           
-          {!isLocked && (
+          {!step.isLocked && (
             <>
               <View style={styles.statusContainer}>
                 <CustomText style={styles.statusLabel}>STATUS:</CustomText>
@@ -101,6 +142,18 @@ const CounsellingStep = ({
                   {stepData?.status || ' Edit your status'}
                 </CustomText>
               </View>
+
+              {/* Display verdict for verdict steps */}
+              {step.isVerdict && stepData?.verdict && (
+                <View style={[
+                  styles.verdictContainer,
+                  isVerdictAccepted && styles.verdictContainerAccepted
+                ]}>
+                  <CustomText style={styles.verdictLabel}>We suggest:</CustomText>
+                  <CustomText style={styles.verdictText}>{stepData.verdict}</CustomText>
+                </View>
+              )}
+
               {stepData?.remark && (
                 <CustomText style={[
                   styles.remarkText,
@@ -108,6 +161,15 @@ const CounsellingStep = ({
                 ]}>
                   {stepData.remark}
                 </CustomText>
+              )}
+
+              {/* Display college and branch for cap result steps */}
+              {step.isCapQuery && stepData.collegeName && stepData.branchCode && (
+                <View style={styles.allotmentContainer}>
+                  <CustomText style={styles.allotmentLabel}>Allotted College:</CustomText>
+                  <CustomText style={styles.allotmentCollege}>{stepData.collegeName}</CustomText>
+                  <CustomText style={styles.allotmentBranch}>Branch: {stepData.branchCode}</CustomText>
+                </View>
               )}
 
               {isEditing && (
@@ -132,6 +194,29 @@ const CounsellingStep = ({
                     </View>
                   </View>
 
+                  {/* Add college and branch inputs for cap result steps */}
+                  {step.isCapQuery && (
+                    <View style={styles.allottedCollegeContainer}>
+                      <CustomText style={styles.inputLabel}>Allotted College</CustomText>
+                      <CustomTextInput
+                        style={[]}
+                        value={inputData.collegeName}
+                        onChangeText={(text) => setInputData(prev => ({...prev, collegeName: text}))}
+                        placeholder="Enter college name"
+                        placeholderTextColor="#999"
+                      />
+                      
+                      <CustomText style={styles.inputLabel}>Branch Code</CustomText>
+                      <CustomTextInput
+                        style={[]}
+                        value={inputData.branchCode}
+                        onChangeText={(text) => setInputData(prev => ({...prev, branchCode: text}))}
+                        placeholder="Enter branch code"
+                        placeholderTextColor="#999"
+                      />
+                    </View>
+                  )}
+
                   <View style={styles.textInputContainer}>
                     <CustomText style={styles.inputLabel}>Remarks</CustomText>
                     <CustomTextInput
@@ -149,7 +234,29 @@ const CounsellingStep = ({
               )}
 
               <View style={styles.footer}>
-                {leftCTA && !isEditing && (
+                {step.isVerdict && stepData?.verdict && !isEditing && (
+                  isVerdictAccepted ? (
+                    // Show Reject button when verdict is accepted
+                    <TouchableOpacity 
+                      style={styles.rejectVerdictButton} 
+                      onPress={handleVerdictReject}
+                    >
+                      <Icon name="close-circle" size={16} style={{marginRight: 10}} color="#F44336" />
+                      <CustomText style={styles.rejectVerdictText}>Reject</CustomText>
+                    </TouchableOpacity>
+                  ) : (
+                    // Show Accept button when verdict is not accepted
+                    <TouchableOpacity 
+                      style={styles.acceptVerdictButton} 
+                      onPress={handleVerdictAccept}
+                    >
+                      <Icon name="check-circle" size={16} style={{marginRight: 10}} color="#4CAF50" />
+                      <CustomText style={styles.acceptVerdictText}>Accept</CustomText>
+                    </TouchableOpacity>
+                  )
+                )}
+
+                {leftCTA && !isEditing && !step.isVerdict && (
                   <TouchableOpacity 
                     style={{ flexDirection: 'row', alignItems: 'center' }} 
                     onPress={leftCTA.onPress}
@@ -162,7 +269,7 @@ const CounsellingStep = ({
                 <TouchableOpacity 
                   style={[styles.editButton, { marginLeft: 'auto' }]}
                   onPress={isEditing ? 
-                    () => onSave(stepNumber, inputData) : 
+                    handleSaveData : // Use our new function to preserve verdict 
                     onEdit}
                 >
                   <Icon 
@@ -381,6 +488,90 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 15, // Increased from 12
     lineHeight: 22, // Increased from 20
+  },
+  verdictContainer: {
+    marginTop: 12,
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 8,
+    flexDirection: 'column',
+  },
+  verdictLabel: {
+    color: '#613EEA',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  verdictText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  allotmentContainer: {
+    marginTop: 12,
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 8,
+  },
+  allotmentLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#613EEA',
+    marginBottom: 5,
+  },
+  allotmentCollege: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  allotmentBranch: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+  },
+  allottedCollegeContainer: {
+    marginBottom: 16,
+  },
+  acceptVerdictButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  acceptVerdictText: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
+  acceptedBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  acceptedText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  rejectVerdictButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  rejectVerdictText: {
+    color: '#F44336',
+    fontWeight: 'bold',
+  },
+  verdictContainerAccepted: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+    borderWidth: 1,
   },
 })
 

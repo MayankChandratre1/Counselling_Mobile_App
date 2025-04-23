@@ -19,29 +19,50 @@ const CounsellingForm = () => {
 
   const [steps, setSteps] = React.useState<any[] | null>(null);
   const [editingStep, setEditingStep] = useState<number | null>(null);
-  const [stepsData, setStepsData] = useState<{[key: number]: {status: 'Yes' | 'No', remark: string}}>({});
+  const [stepsData, setStepsData] = useState<{[key: number]: {status: 'Yes' | 'No', remark: string, verdict?: string}}>({});
 
   const handleEdit = (stepNumber: number) => {
     setEditingStep(stepNumber);
   };
 
-  const handleSave = async (stepNumber: number, data: { status: 'Yes' | 'No', remark: string }) => {
+  const handleAcceptVerdict = async (stepNumber: number) => {
+    // Get the current step data
+    const currentStepData = stepsData[stepNumber] || {};
+    
+    // Create updated data with accept flag
+    const updatedData = {
+      ...currentStepData,
+      accept: true
+    };
+    
+    // Save the updated data using the existing handleSave function
+    await handleSave(stepNumber, updatedData);
+  };
+
+  const handleSave = async (stepNumber: number, data: any) => {
+    // Create a copy of data that includes any existing fields like verdict
+    const updatedData = {
+      ...(stepsData[stepNumber] || {}), // Preserve any existing data
+      ...data // Apply new updates
+    };
+    
     const edited_data = {
       ...stepsData,
-      [stepNumber]: data
-    }
+      [stepNumber]: updatedData
+    };
+    
     setStepsData(prev => ({
       ...prev,
-      [stepNumber]: data
+      [stepNumber]: updatedData
     }));
     setEditingStep(null);
-
+  
     // Log all steps data
     const allStepsData = steps?.map(step => ({
-      number: step.number,
-      title: step.title,
-      ...edited_data[step.number] || { status: 'No', remark: '' }
+      ...step,
+      ...(edited_data[step.number] || { status: 'No', remark: '' })
     }));
+    
     const userData = await getUserData()
     
     const updateResponse = await secureRequest(`${config.USER_API}/formdata/${userData.phone}/elite-1234567`, RequestMethod.POST, {
@@ -49,17 +70,19 @@ const CounsellingForm = () => {
         steps: allStepsData
       }
     });
-    console.log(updateResponse);
+    console.log(updateResponse, allStepsData);
     
   };
 
   const fetchSteps = async () => {
     const user = await getUserData()
     const response:any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/elite-1234567`, RequestMethod.GET);
+
     setStepsData(response.data?.steps.reduce((acc: any, step: any) => {
       acc[step.number] = step;
       return acc;
     }, {}));    
+    console.log("Steps: ", response.data);
     setSteps(response.data?.steps as any[]);
   }
 
@@ -117,8 +140,7 @@ const CounsellingForm = () => {
             steps && steps.length > 0 &&steps?.map((step, index) => (
               <CounsellingStep 
                 key={step.number}
-                title={step.title} 
-                stepNumber={step.number}
+                step={step}
                 onEdit={() => handleEdit(step.number)}
                 onSave={handleSave}
                 isEditing={editingStep === step.number}
@@ -127,9 +149,10 @@ const CounsellingForm = () => {
                 leftCTA={step.showListButton ? {
                   label:"View Lists",
                   onPress: () => navigation.navigate('MyLists')
+                } : step.isVerdict ? {
+                  label: "Accept",
+                  onPress: () => handleAcceptVerdict(step.number)
                 } : undefined}
-                isLocked={!!step.isLocked}
-                description={step.description}
               />
             ))
           }  

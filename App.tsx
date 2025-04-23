@@ -204,6 +204,7 @@ const App = () => {
               <Stack.Screen name="Notification" component={Notification} />
               <Stack.Screen name="PlanDetails" component={PlanDetails} />
               <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
+              <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
             </>
           ) : (
             <>

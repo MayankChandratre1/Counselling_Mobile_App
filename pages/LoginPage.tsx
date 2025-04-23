@@ -1,34 +1,35 @@
-import { Dimensions, StyleSheet, TextInput, TouchableOpacity, View, Image, Alert, Pressable } from 'react-native'
+import { Dimensions, StyleSheet, TouchableOpacity, View, Image, Alert, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { storeUserData } from '../utils/storage';
 import React, { useState } from 'react'
 import config from '../configs/API';
 import CustomText from '../components/General/CustomText';
 import { FONTS } from '../styles/typography';
-import { globalStyles } from '../styles/globalStyles';
 import CustomTextInput from '../components/General/CustomTextInput';
 
 export const LoginScreen = ({navigation}:any) => {
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [isLogin, setIsLogin] = React.useState(false);
-  const [isOtp, setIsOtp] = React.useState(false);
   const [isPassword, setIsPassword] = React.useState(false);
-  const [otp, setOtp] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Get screen dimensions
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const isSmallScreen = screenHeight < 700;
+  
+  // Validation and submission functions
   const validatePhone = (phoneNumber: string) => {
-    // Check if phone number is exactly 10 digits
     return phoneNumber.length === 10 && /^\d{10}$/.test(phoneNumber);
   };
 
   const handleLogin = async () => {
+    console.log(phone);
     if (!phone) {
       Alert.alert('Error', 'Please enter your phone number');
       return;
     }
-    
     try {
       const res = await fetch(`${config.USER_API}/login`, {
         method: 'POST',
@@ -37,6 +38,9 @@ export const LoginScreen = ({navigation}:any) => {
         },
         body: JSON.stringify({ phone, password })
       });
+
+      console.log(res);
+      
       
       const data = await res.json();
       if (res.ok) {
@@ -55,6 +59,7 @@ export const LoginScreen = ({navigation}:any) => {
   }
 
   const handleSubmit = async () => {
+    
     if (isLogin) {
       if (!phone) {
         Alert.alert('Error', 'Please enter your phone number');
@@ -67,6 +72,7 @@ export const LoginScreen = ({navigation}:any) => {
       }
       
       try {
+        console.log(`${config.USER_API}/ispremium`);
         const res = await fetch(`${config.USER_API}/ispremium`, {
           method: 'POST',
           headers: {
@@ -123,114 +129,124 @@ export const LoginScreen = ({navigation}:any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.contentWrapper}>
-        <Image 
-          source={require('../assets/Yash_aaradhey_logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        
-        <View style={styles.welcomeContainer}>
-          <CustomText style={styles.welcomeText}>
-            {isPassword ? `Enter Your Password` : `Welcome,`}
-          </CustomText>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.contentWrapper}>
+          <Image 
+            source={require('../assets/Yash_aaradhey_logo.png')}
+            style={[styles.logo, isSmallScreen && styles.logoSmall]}
+            resizeMode="contain"
+          />
           
-          {!isPassword && 
-            <CustomText style={styles.subtitle}>
-              To Maharashtra's Most Trusted Counselling Platform
+          <View style={styles.welcomeContainer}>
+            <CustomText style={styles.welcomeText}>
+              {isPassword ? `Enter Your Password` : `Welcome,`}
             </CustomText>
-          }
-        </View>
+            
+            {!isPassword && 
+              <CustomText style={styles.subtitle}>
+                To Maharashtra's Most Trusted Counselling Platform
+              </CustomText>
+            }
+          </View>
 
-        <View style={styles.formContainer}>
-          {!isLogin && (
-            <View style={styles.inputGroup}>
-              <CustomText style={styles.inputLabel}>Full Name</CustomText>
-              <CustomTextInput
-                style={styles.input}
-                placeholder="Enter your name"
-                value={name}
-                onChangeText={setName}
-                placeholderTextColor="#999"
-              />
-            </View>
-          )}
-
-          {!isPassword && (
-            <View style={styles.inputGroup}>
-              <CustomText style={styles.inputLabel}>Phone Number</CustomText>
-              <CustomTextInput
-                style={styles.input}
-                placeholder="Enter your phone number"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                placeholderTextColor="#999"
-                maxLength={10} // Restrict to 10 characters
+          <View style={styles.formContainer}>
+            {!isLogin && (
+              <View style={styles.inputGroup}>
                 
-              />
-              <CustomText style={styles.helperText}>10-digit mobile number</CustomText>
-            </View>
-          )}
-
-          {isPassword && (
-            <View style={styles.inputGroup}>
-              <CustomText style={styles.inputLabel}>Password</CustomText>
-              <View style={styles.passwordContainer}>
                 <CustomTextInput
-                  style={styles.passwordInput}
-                  contextMenuHidden
-                  secureTextEntry={!showPassword}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
+                  style={styles.input}
+                  placeholder="Enter your name"
+                  value={name}
+                  onChangeText={setName}
                   placeholderTextColor="#999"
                 />
-                <TouchableOpacity 
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons 
-                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                    size={24} 
-                    color="#666"
+              </View>
+            )}
+
+            {!isPassword && (
+              <View style={styles.inputGroup}>
+                
+                <CustomTextInput
+                  style={styles.input}
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  placeholderTextColor="#999"
+                  maxLength={10}
+                />
+                
+              </View>
+            )}
+
+            {isPassword && (
+              <View style={styles.inputGroup}>
+                <CustomText style={styles.inputLabel}>Password</CustomText>
+                <View style={styles.passwordContainer}>
+                  <CustomTextInput
+                    style={styles.passwordInput}
+                    contextMenuHidden
+                    secureTextEntry={!showPassword}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholderTextColor="#999"
                   />
-                </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons 
+                      name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                      size={24} 
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {isPassword ? 
+              <TouchableOpacity onPress={handleLogin} style={styles.button}>
+                <CustomText style={styles.buttonText}>Submit</CustomText>
+              </TouchableOpacity>
+              :
+              <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+                <CustomText style={styles.buttonText}>
+                  {isLogin ? 'Login' : 'Get Started'}
+                </CustomText>
+              </TouchableOpacity>
+            }
+
+            <Pressable onPress={() => setIsLogin(!isLogin)} style={styles.toggleContainer}>
+              <CustomText style={styles.toggleText}>
+                {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
+              </CustomText>
+            </Pressable>
+            
+            {/* Adding terms and conditions inside the scrollable area */}
+            <View style={styles.termsContainer}>
+              <CustomText style={styles.termsText}>
+                By continuing, you agree to our
+              </CustomText>
+              <View style={styles.termsLinksContainer}>
+                <CustomText style={styles.termsLink}>Terms & Conditions</CustomText>
+                <CustomText style={styles.termsLink}>Privacy Policy</CustomText>
               </View>
             </View>
-          )}
-
-          {isPassword ? 
-            <TouchableOpacity onPress={handleLogin} style={styles.button}>
-              <CustomText style={styles.buttonText}>Submit</CustomText>
-            </TouchableOpacity>
-            :
-            <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-              <CustomText style={styles.buttonText}>
-                {isLogin ? 'Login' : 'Get Started'}
-              </CustomText>
-            </TouchableOpacity>
-          }
-
-          <Pressable onPress={() => setIsLogin(!isLogin)} style={styles.toggleContainer}>
-            <CustomText style={styles.toggleText}>
-              {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
-            </CustomText>
-          </Pressable>
+          </View>
         </View>
-      </View>
-
-      <View style={styles.termsContainer}>
-        <CustomText style={styles.termsText}>
-          By continuing, you agree to our
-        </CustomText>
-        <View style={styles.termsLinksContainer}>
-          <CustomText style={styles.termsLink}>Terms & Conditions</CustomText>
-          <CustomText style={styles.termsLink}>Privacy Policy</CustomText>
-        </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -239,23 +255,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   contentWrapper: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    marginTop: -50, // Offset to account for logo and better vertical centering
+    paddingTop: 50,
+    paddingBottom: 30,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 150,
+    height: 150,
     alignSelf: 'center',
     marginBottom: 20,
   },
+  logoSmall: {
+    width: 100,
+    height: 100,
+  },
   welcomeContainer: {
-    marginBottom: 30,
+    marginBottom: 20,
   },
   welcomeText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 10,
   },
@@ -295,6 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '100%',
     marginTop: 10,
+    marginBottom: 15,
   },
   buttonText: {
     color: '#fff',
@@ -303,10 +329,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   termsContainer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
+    marginTop: 20,
     alignItems: 'center',
   },
   termsText: {
@@ -324,7 +347,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   toggleContainer: {
-    marginTop: 15,
+    marginTop: 5,
     alignItems: 'center',
   },
   toggleText: {
@@ -335,7 +358,6 @@ const styles = StyleSheet.create({
   passwordContainer: {
     position: 'relative',
     width: '100%',
-    marginBottom: 15,
   },
   passwordInput: {
     width: '100%',
@@ -359,4 +381,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
   },
-})
+});

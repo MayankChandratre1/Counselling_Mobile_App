@@ -3,11 +3,11 @@ import { Platform, TextStyle } from 'react-native';
 
 // Use platform-specific fonts for better cross-platform consistency
 export const FONTS = {
-  REGULAR: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-  MEDIUM: Platform.OS === 'ios' ? 'Helvetica Neue-Medium' : 'sans-serif-medium',
-  BOLD: Platform.OS === 'ios' ? 'Helvetica Neue-Bold' : 'sans-serif-bold',
-  LIGHT: Platform.OS === 'ios' ? 'Helvetica Neue-Light' : 'sans-serif-light',
-  ITALIC: Platform.OS === 'ios' ? 'Helvetica Neue-Italic' : 'sans-serif-italic',
+  REGULAR: Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto-Regular',
+  MEDIUM: Platform.OS === 'ios' ? 'Helvetica Neue-Medium' : 'Roboto-Medium',
+  BOLD: Platform.OS === 'ios' ? 'Helvetica Neue-Bold' : 'Roboto-Bold',
+  LIGHT: Platform.OS === 'ios' ? 'Helvetica Neue-Light' : 'Roboto-Light',
+  ITALIC: Platform.OS === 'ios' ? 'Helvetica Neue-Italic' : 'Roboto-Italic',
 };
 
 // Font size scale

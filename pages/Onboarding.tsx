@@ -32,6 +32,7 @@ const Screen1 = () => (
 
 const Screen2 = () => (
   <ScrollView contentContainerStyle={styles.screenContentContainer}>
+    {/* Logo and name at the top */}
     <View style={styles.logoContainer}>
       <Image 
         source={require('../assets/Yash_aaradhey_logo.png')}
@@ -48,17 +49,20 @@ const Screen2 = () => (
       </View>
     </View>
     
-    <View style={styles.achievementsContainer}>
-      <CustomText style={styles.achievement}>100K+ on Youtube</CustomText>
-      <CustomText style={styles.achievement}>Helped 10K+ students</CustomText>
-      <CustomText style={styles.achievement}>Coding Courses</CustomText>
+    {/* Relative container for background image and achievements */}
+    <View style={styles.backgroundContainer}>
+      <Image 
+        source={require('../assets/Yash_aaradhey.png')}
+        style={styles.backgroundImage}
+        resizeMode="contain"
+      />
+      
+      <View style={styles.achievementsContainer}>
+        <CustomText style={styles.achievement}>100K+ on Youtube</CustomText>
+        <CustomText style={styles.achievement}>Helped 10K+ students</CustomText>
+        <CustomText style={styles.achievement}>Coding Courses</CustomText>
+      </View>
     </View>
-    
-    <Image 
-      source={require('../assets/Yash_aaradhey.png')}
-      style={styles.backgroundImage}
-      resizeMode="contain"
-    />
   </ScrollView>
 );
 
@@ -146,22 +150,24 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 80,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   welcomeIntro: {
     fontSize: 18 * scale,
     marginBottom: 10,
-    fontFamily: FONTS.REGULAR,
+    fontFamily: 'Roboto-Regular',
     color: '#333333',
   },
   trustedText: {
+    fontSize: Math.min(36 * scale, 30),
+    width: '100%',
     color: '#006FFD',
     fontWeight: 'bold',
     textDecorationLine: 'underline',
     fontFamily: FONTS.BOLD,
+
   },
   welcomeHeading: {
-    fontSize: Math.min(36 * scale, 42),
+    fontSize: Math.min(36 * scale, 30),
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
@@ -173,8 +179,8 @@ const styles = StyleSheet.create({
   imageContainer: {
     backgroundColor: '#64A6FA99',
     borderRadius: Math.min(SCREEN_WIDTH * 0.4, 200),
-    width: Math.min(SCREEN_WIDTH * 0.8, 300),
-    height: Math.min(SCREEN_WIDTH * 0.8, 300),
+    width: Math.min(SCREEN_WIDTH * 0.8, 200),
+    height: Math.min(SCREEN_WIDTH * 0.8, 200),
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -182,45 +188,56 @@ const styles = StyleSheet.create({
   },
   roundedImage: {
     width: '100%',
+    maxWidth: 200,
     height: '100%',
   },
   logoContainer: {
-    alignItems: 'center',
+    width: '100%',
     flexDirection: 'row',
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 10,
   },
   logo_screen2: {
-    width: Math.min(SCREEN_WIDTH * 0.25, 100),
-    height: Math.min(SCREEN_WIDTH * 0.25, 100),
+    width: Math.min(SCREEN_WIDTH * 0.2, 80),
+    height: Math.min(SCREEN_WIDTH * 0.2, 80),
   },
   logoTextContainer: {
-    marginLeft: 20,
+    marginLeft: 15,
   },
   appByText: {
-    fontSize: 16 * scale,
+    fontSize: 14 * scale,
     fontFamily: FONTS.REGULAR,
   },
   logoText: {
-    fontSize: Math.min(32 * scale, 36),
+    fontSize: Math.min(28 * scale, 30),
     fontWeight: 'bold',
     color: "#006FFD",
     fontFamily: FONTS.BOLD,
   },
+  backgroundContainer: {
+    flex: 1,
+    width: '100%',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   backgroundImage: {
     position: 'absolute',
-    bottom: 0,
-    width: SCREEN_WIDTH * 1.3,
-    height: SCREEN_HEIGHT * 0.5,
+    width: SCREEN_WIDTH * 2.5,
+    height: SCREEN_WIDTH * 2.5,
+    bottom: -SCREEN_WIDTH * 0.6,
+    right: -SCREEN_WIDTH * 0.8,
     opacity: 0.7,
     zIndex: -1,
   },
   achievementsContainer: {
     width: '100%',
-    marginBottom: 20,
+    paddingHorizontal: 10,
+    marginTop: 20,
   },
   achievement: {
-    fontSize: Math.min(24 * scale, 28),
+    fontSize: Math.min(24 * scale, 22),
     fontWeight: 'bold',
     color: "#fff",
     marginVertical: 10,
