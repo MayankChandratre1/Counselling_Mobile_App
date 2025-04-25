@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View, Image, ScrollView, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { clearUserData, getUserData, logout } from '../utils/storage'
 import UpdateSlider  from "../components/Home/UpdateSlider"
@@ -8,6 +8,7 @@ import CollegeCard from '../components/Colleges/CollegeCard'
 import { CommonActions } from '@react-navigation/native';
 import config from '../configs/API'
 import CustomText from '../components/General/CustomText'
+import RazorpayCheckout from 'react-native-razorpay';
 
 const { USER_API } = config;
 const SectionsNav = ({ navigation }: { navigation: any }) => (
@@ -28,10 +29,47 @@ const SectionsNav = ({ navigation }: { navigation: any }) => (
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.sectionButton}
-        onPress={() => navigation.navigate('Browse')}
+        onPress={async () => {
+            const userData = await getUserData();
+            if (userData) {
+                console.log(userData);
+                
+            } else {
+                Alert.alert('Error', 'User data not found');
+            }
+        }}
       >
-        <CustomText style={styles.buttonLabel}>Youtube</CustomText>
+        <CustomText style={styles.buttonLabel}>DEBUG</CustomText>
       </TouchableOpacity>
+      {/* <TouchableOpacity 
+        style={styles.sectionButton}
+        onPress={() => {
+            var options = {
+            description: 'Credits towards consultation',
+            image: 'https://i.imgur.com/3g7nmJC.jpg',
+            currency: 'INR',
+            key: 'rzp_test_R1L6paHcXFNdkR',
+            amount: 5000,
+            name: 'Sarathi',
+            order_id: "order_QNIf8MbwoMskaQ",//Replace this with an order_id created using Orders API.
+            prefill: {
+              email: 'mayankmchandratre@gmail.com',
+              contact: '7843065180',
+              name: 'Mayank Chandratre'
+            },
+            theme: {color: '#53a20e'}
+          }
+          RazorpayCheckout.open(options).then((data) => {
+            // handle success
+            Alert.alert(`Success: ${data.razorpay_payment_id}`);
+          }).catch((error) => {
+            // handle failure
+            Alert.alert(`Error: ${error.code} | ${error.description}`);
+          });
+        }}
+      >
+        <CustomText style={styles.buttonLabel}>Pay Test</CustomText>
+      </TouchableOpacity> */}
     </View>
   </View>
 );

@@ -143,8 +143,11 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
 
   const renderField = (field: FormField) => {
     // Skip password fields if not updating plan
+    if(field.key === 'phone') {
+      return null;
+    }
     if (!route.params?.isUpdatePlanDetails && 
-        (field.key === 'password' || field.key === 'confirmPassword')) {
+        (field.key === 'password' || field.key === 'confirmPassword' || field.key === 'phone')) {
       return null;
     }
 

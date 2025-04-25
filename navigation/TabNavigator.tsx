@@ -9,6 +9,7 @@ import Counselling from '../pages/Counselling';
 import Browse from '../pages/Browse';
 import React from 'react';
 import CustomText from '../components/General/CustomText';
+import Landing from '../pages/Landing';
 
 const Tab = createBottomTabNavigator();
 const { width, height } = Dimensions.get('window');
@@ -33,7 +34,7 @@ const TabNavigator = () => {
   const screens = [
     { name: 'Home', component: Home, icon: 'home' },
     { name: 'Browse', component: Browse, icon: 'search' },
-    { name: 'Colleges', component: Colleges, icon: 'graduation-cap' },
+    { name: 'Colleges', component: Landing, icon: 'graduation-cap' },
     { name: 'Counselling', component: Counselling, icon: 'crown' },
     { name: 'Profile', component: Profile, icon: 'user' }
   ];

@@ -1,10 +1,12 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native'
-import React from 'react'
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import React, { useState } from 'react'
 import TopBar from '../components/General/TopBar'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { CommonActions } from '@react-navigation/native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import config from '../configs/API'
+import { RequestMethod, secureRequest } from '../utils/tokenedRequest'
+import PaymentModal from '../components/payments/PaymentModal'
 
 type RootStackParamList = {
   PlanDetails: {
@@ -30,6 +32,10 @@ type RootStackParamList = {
 type PlanDetailsProps = NativeStackScreenProps<RootStackParamList, 'PlanDetails'>;
 
 const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
+  const [loading, setLoading] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
   const { title , price, features, isPremium } = {
     title: route.params?.title ?? "Free",
     price: route.params?.price ?? "0",
@@ -37,20 +43,83 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
     isPremium: !!route.params?.isPremium,
   }
 
-
   const handleConfirm = async () => {
-    const data = {
+    setLoading(true);
+    try {
+      // Generate a random receipt string
+      const receipt = `receipt_${Math.random().toString(36).substring(2, 15)}`;
+      
+      // Create plan details object
+      const planDetails = {
         isPremium: true,
         plan: title,
         price: price,
         expiry: title == 'Premium' ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
+      };
+      
+      // Create payload for the create-order API
+      const payload = {
+        amount: parseInt(price.replace(/,/g, '')), // Remove commas from price string
+        receipt: receipt,
+        notes: {
+          planDetails: JSON.stringify(planDetails),
+          planTitle: title,
+          customerPlan: title
+        }
+      };
+      
+      // Send POST request to create-order API
+      const response = await secureRequest(`${config.PAYMENT_API}/create-order`, RequestMethod.POST, {
+        body: payload
+      });
+      
+      if (response.data) {
+        console.log('Order creation response:', response.data);
+        
+        // Store order data and show payment modal
+        setOrderData(response.data);
+        setShowPaymentModal(true);
+        
+        // Store plan data in AsyncStorage for later use if needed
+        await AsyncStorage.setItem('tempPlanDetails', JSON.stringify(planDetails));
+      } else {
+        throw new Error(response.error || 'Failed to create order');
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      Alert.alert('Error', 'Failed to create payment order');
+    } finally {
+      setLoading(false);
     }
-    await AsyncStorage.setItem('plan', JSON.stringify(data));
-    navigation.navigate('RegistrationForm', {
-      planDetails: data,
-      isUpdatePlanDetails: true,
-    });
-  }
+  };
+
+  const handlePaymentSuccess = async () => {
+    try {
+      // Get stored plan details
+      const planDetailsStr = await AsyncStorage.getItem('tempPlanDetails');
+      if (!planDetailsStr) throw new Error('Plan details not found');
+      
+      const planDetails = JSON.parse(planDetailsStr);
+      
+      // Close payment modal
+      setShowPaymentModal(false);
+      
+      // Store plan data in AsyncStorage
+      await AsyncStorage.setItem('plan', planDetailsStr);
+      
+      // Clean up temp storage
+      await AsyncStorage.removeItem('tempPlanDetails');
+      
+      // Navigate to registration form
+      navigation.navigate('RegistrationForm', {
+        planDetails: planDetails,
+        isUpdatePlanDetails: true,
+      });
+    } catch (error) {
+      console.error('Error handling payment success:', error);
+      Alert.alert('Error', 'There was an error processing your successful payment');
+    }
+  };
 
   return (
     <>
@@ -75,10 +144,24 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-          <Text style={styles.confirmButtonText}>Confirm Purchase</Text>
+        <TouchableOpacity 
+          style={[styles.confirmButton, loading && styles.confirmButtonDisabled]} 
+          onPress={handleConfirm}
+          disabled={loading}
+        >
+          <Text style={styles.confirmButtonText}>
+            {loading ? 'Processing...' : 'Confirm Purchase'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <PaymentModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handlePaymentSuccess}
+        orderData={orderData}
+        planTitle={title}
+      />
     </>
   )
 }
@@ -139,6 +222,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.7,
   },
 })
 
