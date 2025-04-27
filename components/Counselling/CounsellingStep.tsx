@@ -1,9 +1,8 @@
-import { StyleSheet, View, TouchableOpacity } from 'react-native'
-import React from 'react'
+import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native'
+import React, { useState } from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import CustomText from '../General/CustomText'
-import { Picker } from '@react-native-picker/picker';
-import CustomTextInput from '../General/CustomTextInput';
+import StepEditModal from '../Counselling/StepEditModal'
 
 interface CounsellingStepProps {
   leftCTA?: {
@@ -12,7 +11,6 @@ interface CounsellingStepProps {
   };
   onEdit: () => void;
   onSave: (stepNumber: number, data: any) => void;
-  isEditing?: boolean;
   stepData?: {
     status: 'Yes' | 'No' | undefined;
     remark: string;
@@ -33,33 +31,17 @@ interface CounsellingStepProps {
   };
 }
 
-interface RadioOption {
-  label: string;
-  value: 'Yes' | 'No';
-}
-
 const CounsellingStep = ({ 
   leftCTA, 
-  onEdit,
   onSave,
-  isEditing,
   stepData = { status: undefined, remark: '' },
   isCompleted = false,
   step
 }: CounsellingStepProps) => {
-  const [inputData, setInputData] = React.useState({
-    status: stepData.status || 'No',
-    remark: stepData.remark || '',
-    collegeName: stepData.collegeName || '',
-    branchCode: stepData.branchCode || '',
-    verdict: stepData.verdict || '' // Preserve verdict in state
-  });
-
-  const statusOptions: RadioOption[] = [
-    { label: 'Yes', value: 'Yes' },
-    { label: 'No', value: 'No' }
-  ];
-
+  const [showEditModal, setShowEditModal] = useState(false);
+  const { width: screenWidth } = Dimensions.get('window');
+  const isSmallScreen = screenWidth < 360;
+  
   const getStepStyle = () => {
     if (step.isLocked) return [styles.container, styles.containerLocked];
     if (stepData?.status === 'No') return [styles.container, styles.containerRejected];
@@ -84,14 +66,9 @@ const CounsellingStep = ({
     onSave(step.number, rejectedData);
   };
 
-  const handleSaveData = () => {
-    // Create data object preserving the verdict if present
-    const dataToSave = {
-      ...inputData,
-      // Ensure verdict is preserved if it already exists
-      verdict: stepData.verdict || inputData.verdict
-    };
-    onSave(step.number, dataToSave);
+  const handleSaveData = (data: any) => {
+    onSave(step.number, data);
+    setShowEditModal(false);
   };
 
   return (
@@ -106,7 +83,9 @@ const CounsellingStep = ({
           {step.isLocked ? (
             <Icon name="lock" size={20} color="#fff" />
           ) : (
-            <CustomText style={styles.stepNumberText}>{step.number}</CustomText>
+            <CustomText style={styles.stepNumberText}>
+              {step.number}
+            </CustomText>
           )}
         </View>
       </View>
@@ -114,10 +93,16 @@ const CounsellingStep = ({
       <View style={styles.contentWrapper}>
         <View style={getStepStyle()}>
           <View style={styles.header}>
-            <CustomText style={styles.title}>{step.title}</CustomText>
+            <CustomText style={styles.title} numberOfLines={2}>
+              {step.title}
+            </CustomText>
+            
             {step.isLocked && (
-              <CustomText style={styles.comingSoon}>Coming Soon</CustomText>
+              <CustomText style={styles.comingSoon}>
+                Coming Soon
+              </CustomText>
             )}
+            
             {isVerdictAccepted && (
               <View style={styles.acceptedBadge}>
                 <CustomText style={styles.acceptedText}>Accepted</CustomText>
@@ -125,13 +110,9 @@ const CounsellingStep = ({
             )}
           </View>
 
-          {step.description && (
-            <CustomText style={styles.description}>{step.description}</CustomText>
-          )}
-          
           {!step.isLocked && (
-            <>
-              <View style={styles.statusContainer}>
+            <View style={styles.contentSection}>
+              {/* <View style={styles.statusContainer}>
                 <CustomText style={styles.statusLabel}>STATUS:</CustomText>
                 <CustomText style={[
                   styles.statusValue,
@@ -139,9 +120,9 @@ const CounsellingStep = ({
                   stepData?.status === 'Yes' && styles.statusValueCompleted,
                   !stepData?.status && styles.statusValuePending
                 ]}>
-                  {stepData?.status || ' Edit your status'}
+                  {stepData?.status || 'Not Set'}
                 </CustomText>
-              </View>
+              </View> */}
 
               {/* Display verdict for verdict steps */}
               {step.isVerdict && stepData?.verdict && (
@@ -154,6 +135,7 @@ const CounsellingStep = ({
                 </View>
               )}
 
+              {/* Display remark if available */}
               {stepData?.remark && (
                 <CustomText style={[
                   styles.remarkText,
@@ -172,71 +154,9 @@ const CounsellingStep = ({
                 </View>
               )}
 
-              {isEditing && (
-                <View style={styles.inputContainer}>
-                  <View style={styles.radioContainer}>
-                    <CustomText style={styles.inputLabel}>Status</CustomText>
-                    <View style={styles.radioGroup}>
-                      {statusOptions.map((option) => (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={styles.radioOption}
-                          onPress={() => setInputData(prev => ({...prev, status: option.value}))}
-                        >
-                          <View style={styles.radio}>
-                            {inputData.status === option.value && (
-                              <View style={styles.radioSelected} />
-                            )}
-                          </View>
-                          <CustomText style={styles.radioLabel}>{option.label}</CustomText>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Add college and branch inputs for cap result steps */}
-                  {step.isCapQuery && (
-                    <View style={styles.allottedCollegeContainer}>
-                      <CustomText style={styles.inputLabel}>Allotted College</CustomText>
-                      <CustomTextInput
-                        style={[]}
-                        value={inputData.collegeName}
-                        onChangeText={(text) => setInputData(prev => ({...prev, collegeName: text}))}
-                        placeholder="Enter college name"
-                        placeholderTextColor="#999"
-                      />
-                      
-                      <CustomText style={styles.inputLabel}>Branch Code</CustomText>
-                      <CustomTextInput
-                        style={[]}
-                        value={inputData.branchCode}
-                        onChangeText={(text) => setInputData(prev => ({...prev, branchCode: text}))}
-                        placeholder="Enter branch code"
-                        placeholderTextColor="#999"
-                      />
-                    </View>
-                  )}
-
-                  <View style={styles.textInputContainer}>
-                    <CustomText style={styles.inputLabel}>Remarks</CustomText>
-                    <CustomTextInput
-                      style={styles.input}
-                      value={inputData.remark}
-                      onChangeText={(text) => setInputData(prev => ({...prev, remark: text}))}
-                      placeholder="Add your remarks here..."
-                      placeholderTextColor="#999"
-                      multiline
-                      numberOfLines={4}
-                      textAlignVertical="top"
-                    />
-                  </View>
-                </View>
-              )}
-
               <View style={styles.footer}>
-                {step.isVerdict && stepData?.verdict && !isEditing && (
+                {step.isVerdict && stepData?.verdict && (
                   isVerdictAccepted ? (
-                    // Show Reject button when verdict is accepted
                     <TouchableOpacity 
                       style={styles.rejectVerdictButton} 
                       onPress={handleVerdictReject}
@@ -245,7 +165,6 @@ const CounsellingStep = ({
                       <CustomText style={styles.rejectVerdictText}>Reject</CustomText>
                     </TouchableOpacity>
                   ) : (
-                    // Show Accept button when verdict is not accepted
                     <TouchableOpacity 
                       style={styles.acceptVerdictButton} 
                       onPress={handleVerdictAccept}
@@ -256,183 +175,57 @@ const CounsellingStep = ({
                   )
                 )}
 
-                {leftCTA && !isEditing && !step.isVerdict && (
+                {leftCTA && !step.isVerdict && (
                   <TouchableOpacity 
-                    style={{ flexDirection: 'row', alignItems: 'center' }} 
+                    style={styles.leftCTAButton} 
                     onPress={leftCTA.onPress}
                   >
                     <Icon name="clipboard-text-multiple-outline" size={16} style={{marginRight: 10}} color="#613EEA" />
-                    <CustomText style={styles.leftCTA}>{leftCTA.label}</CustomText>
+                    <CustomText style={styles.leftCTAText}>{leftCTA.label}</CustomText>
                   </TouchableOpacity>
                 )}
 
                 <TouchableOpacity 
-                  style={[styles.editButton, { marginLeft: 'auto' }]}
-                  onPress={isEditing ? 
-                    handleSaveData : // Use our new function to preserve verdict 
-                    onEdit}
+                  style={styles.editButton}
+                  onPress={() => setShowEditModal(true)}
                 >
-                  <Icon 
-                    name={isEditing ? "check-circle-outline" : "application-edit-outline"} 
-                    size={24} 
-                    color="#613EEA" 
-                  />
+                  <CustomText style={styles.leftCTAText}>View</CustomText>
+                  <Icon name="arrow-right" size={20} color="#613EEA" />
                 </TouchableOpacity>
               </View>
-            </>
+            </View>
           )}
         </View>
       </View>
+
+      {/* Edit Step Modal */}
+      <StepEditModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveData}
+        stepData={stepData}
+        step={step}
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderWidth: 1,
-    borderColor: '#613EEA',
-    borderRadius: 12,
-    padding: 20, // Increased from 15
-    marginBottom: 20, // Increased from 15
-    backgroundColor: '#fff',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  containerCompleted: {
-    borderColor: '#4CAF50',
-    borderWidth: 2,
-    // backgroundColor: '#F9FBE7',
-  },
-  containerRejected: {
-    borderColor: '#F44336',
-    borderWidth: 2,
-    // backgroundColor: '#FFF5F5',
-  },
-  containerLocked: {
-    borderColor: '#9E9E9E',
-    backgroundColor: '#F5F5F5',
-    opacity: 0.8,
-  },
-  title: {
-    fontSize: 22, // Increased from 18
-    fontWeight: 'bold',
-    color: '#000',
-    // marginBottom: 12, // Added margin
-  },
-  statusContainer: {
+  stepWrapper: {
     flexDirection: 'row',
-    alignItems: 'center',
-  
-    borderRadius: 8,
-  },
-  statusLabel: {
-    color: '#613EEA',
-    fontWeight: '500',
-  },
-  statusValue: {
-    color: '#333',
-    fontWeight: '500',
-  },
-  statusValueCompleted: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
-  statusValueRejected: {
-    color: '#F44336',
-    fontWeight: 'bold',
-  },
-  statusValuePending: {
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  leftCTA: {
-    color: '#613EEA',
-    fontWeight: '500',
-  },
-  editButton: {
-    padding: 5,
-  },
-  inputContainer: {
-    marginTop: 16,
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    padding: 12,
-  },
-  radioContainer: {
-    marginBottom: 16,
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 20,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#613EEA',
-    marginRight: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#613EEA',
-  },
-  radioLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  textInputContainer: {
-    marginTop: 8,
-  },
-  inputLabel: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  picker: {
-    height: 48,
+    paddingHorizontal: 10,
+    marginBottom: 15,
     width: '100%',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 120,
-    backgroundColor: '#fff',
-    color: '#333',
-    textAlignVertical: 'top',
-    marginTop: 8,
+  stepNumberContainer: {
+    width: 56,
+    alignItems: 'center',
   },
   stepNumber: {
-    paddingInline: 10,
     backgroundColor: '#613EEA',
-    borderRadius: 25,
-    width: 56, // Increased size
-    height: 56, // Increased size
+    borderRadius: 28,
+    width: 56,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -447,109 +240,164 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     color: '#FFFFFF',
-    fontSize: 28, // Increased from 24
+    fontSize: 24,
     fontWeight: 'bold'
-  },
-  remarkText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  remarkTextRejected: {
-    color: '#F44336',
-  },
-  stepWrapper: {
-    flexDirection: 'row',
-    paddingHorizontal: 15,
-    marginBottom: 20, // Increased spacing between steps
-  },
-  stepNumberContainer: {
-    width: "10%",
-    alignItems: 'center',
   },
   contentWrapper: {
     flex: 1,
-    paddingLeft: 15,
+    paddingLeft: 10,
+  },
+  container: {
+    borderWidth: 1,
+    borderColor: '#613EEA',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 2,
+  },
+  containerCompleted: {
+    borderColor: '#4CAF50',
+    borderWidth: 2,
+  },
+  containerRejected: {
+    borderColor: '#F44336',
+    borderWidth: 2,
+  },
+  containerLocked: {
+    borderColor: '#9E9E9E',
+    backgroundColor: '#F5F5F5',
+    opacity: 0.8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    flexWrap: 'wrap',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    flex: 1,
   },
   comingSoon: {
     fontSize: 12,
     color: '#9E9E9E',
     fontStyle: 'italic',
+    marginLeft: 8,
   },
-  description: {
-    fontSize: 15, // Increased from 14
+  contentSection: {
+    marginTop: 5,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statusLabel: {
+    color: '#613EEA',
+    fontWeight: '500',
+    marginRight: 8,
+    fontSize: 13,
+  },
+  statusValue: {
+    color: '#333',
+    fontWeight: '500',
+    fontSize: 13,
+  },
+  statusValueCompleted: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
+  statusValueRejected: {
+    color: '#F44336',
+    fontWeight: 'bold',
+  },
+  statusValuePending: {
     color: '#666',
-    marginBottom: 15, // Increased from 12
-    lineHeight: 22, // Increased from 20
+    fontStyle: 'italic',
   },
   verdictContainer: {
-    marginTop: 12,
+    marginBottom: 10,
     backgroundColor: '#F5F5F5',
-    padding: 15,
+    padding: 10,
     borderRadius: 8,
-    flexDirection: 'column',
   },
   verdictLabel: {
     color: '#613EEA',
     fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 5,
+    fontSize: 13,
+    marginBottom: 2,
   },
   verdictText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#333',
     fontWeight: '500',
   },
+  remarkText: {
+    marginBottom: 10,
+    fontSize: 13,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  remarkTextRejected: {
+    color: '#F44336',
+  },
   allotmentContainer: {
-    marginTop: 12,
+    marginBottom: 10,
     backgroundColor: '#F5F5F5',
-    padding: 15,
+    padding: 10,
     borderRadius: 8,
   },
   allotmentLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#613EEA',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   allotmentCollege: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#333',
     fontWeight: '500',
   },
   allotmentBranch: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
-    marginTop: 5,
+    marginTop: 2,
   },
-  allottedCollegeContainer: {
-    marginBottom: 16,
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 5,
   },
   acceptVerdictButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E8F5E9',
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
   },
   acceptVerdictText: {
     color: '#4CAF50',
     fontWeight: 'bold',
+    fontSize: 13,
   },
   acceptedBadge: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 12,
-    marginLeft: 10,
+    marginLeft: 5,
   },
   acceptedText: {
     color: '#FFFFFF',
@@ -560,22 +408,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFEBEE',
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
   },
   rejectVerdictText: {
     color: '#F44336',
     fontWeight: 'bold',
+    fontSize: 13,
   },
   verdictContainerAccepted: {
     backgroundColor: '#E8F5E9',
     borderColor: '#4CAF50',
     borderWidth: 1,
   },
+  leftCTAButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  leftCTAText: {
+    color: '#613EEA',
+    fontWeight: '500',
+    fontSize: 13,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0FF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  editButtonText: {
+    color: '#613EEA',
+    fontWeight: '500',
+    fontSize: 13,
+    marginLeft: 5,
+  },
 })
 
 export default CounsellingStep
-
-
-

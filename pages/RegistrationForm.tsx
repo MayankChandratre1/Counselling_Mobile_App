@@ -125,6 +125,9 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
       });
 
       if (error) throw new Error(error);
+      if(!route.params?.isUpdatePlanDetails) {
+        Alert.alert('Success', 'Please Log out and Log in again to refresh account!');
+      }
 
       navigation.navigate(route.params?.isUpdatePlanDetails ? 'Home' : 'Counselling');
     } catch (err) {

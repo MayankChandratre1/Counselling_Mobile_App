@@ -1,0 +1,38 @@
+const cities = [
+    "AHMEDNAGAR",
+    "AKOLA",
+    "AMRAVATI",
+    "BEED",
+    "BHANDARA",
+    "BULDHANA",
+    "CHANDRAPUR",
+    "CHHATRAPATI SAMBHAJINAGAR",
+    "DHARASHIV",
+    "DHULE",
+    "JALGAON",
+    "JALNA",
+    "KOLHAPUR",
+    "LATUR",
+    "MUMBAI CITY",
+    "MUMBAI SUBURBAN",
+    "NAGPUR",
+    "NANDED",
+    "NANDURBAR",
+    "NASHIK",
+    "PALGHAR",
+    "PARBHANI",
+    "PUNE",
+    "RAIGAD",
+    "RATNAGIRI",
+    "SANGLI",
+    "SATARA",
+    "SINDHUDURG",
+    "SOLAPUR",
+    "THANE",
+    "WARDHA",
+    "WASHIM",
+    "YAVATMAL"
+  ]
+
+
+export {cities}

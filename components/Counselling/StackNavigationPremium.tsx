@@ -25,7 +25,7 @@ const StackNavigationPremium = ({ planType }: PremiumStackProps) => {
       }}
     >
       {/* Base screens based on plan type */}
-      {planType === 'Free' ? (
+      {planType == 'Free' ? (
         <Stack.Screen name="FreeDashboard" component={FreeDashboard} />
       ) : (
         <Stack.Screen name="PremiumDashboard" component={PremiumDashboard} />

@@ -6,6 +6,7 @@ import TopBar from '../components/General/TopBar'
 import CutoffTable from '../components/CollegeDetails/CutoffTable'
 import TabBar from '../components/CollegeDetails/TabBar'
 import CutoffTab from '../components/CollegeDetails/CutoffTab'
+import AboutTab from '../components/Colleges/AboutTab'
 
 type CollegeDetailsType = {
   id: string;
@@ -15,6 +16,8 @@ type CollegeDetailsType = {
   description?: string;
   instituteCode: string;
   Status: string;
+  additionalMetadata?: any
+  branches?:any
   // Add more fields as needed
 }
 
@@ -32,6 +35,8 @@ const CollegeDetails = () => {
     const fetchCollegeDetails = async () => {
       try {
         setLoading(true);
+        console.log(`Fetching college details for ID: ${route.params.collegeId}`);
+        
         const response = await fetch(`${COLLEGE_API}/colleges/${route.params.collegeId}`);
         
         if (!response.ok) {
@@ -62,17 +67,45 @@ const CollegeDetails = () => {
     const fetchCutoffs = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${COLLEGE_API}/cutoffs/institute/${college?.instituteCode}`);
+        if(false){
+          const response = await fetch(`${COLLEGE_API}/cutoffs/institute/${college?.instituteCode}`);
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch cutoffs');
+          if (!response.ok) {
+            throw new Error('Failed to fetch cutoffs');
+          }
+          
+          const data = await response.json();
+          console.log("Cutoffs");
+          console.log(data);
+          
+          setCutoffs(data.data);
+        }
+        let cutoffsData:any = []
+
+        if(college.branches){
+          cutoffsData = college.branches.map((br:any, i:number) => {
+            const cutoffsArray = br.cutoffs.map((cutoff:any, id:number)=>(
+              {
+                id:college.id+"_"+i+"_"+id,
+                instituteName: college.instituteName,
+                instituteCode: college.instituteCode,
+                branchCode: br.branchCode,
+                branchName: br.branchName,
+                Category: cutoff.category,
+                rank: cutoff.rank,
+                percentile: cutoff.percentile,
+                capRound: cutoff.capRound,
+                city: college.city,
+                year: cutoff.year ?? 2024,
+              }
+            ))
+            return cutoffsArray;
+          })
+          cutoffsData = cutoffsData.flat();
+          console.log("Cutoffs Data: ", cutoffsData);
+          setCutoffs(cutoffsData);
         }
         
-        const data = await response.json();
-        console.log("Cutoffs");
-        console.log(data);
-        
-        setCutoffs(data.data);
         setError(null);
       } catch (err) {
         setError('Failed to fetch cutoffs');
@@ -89,28 +122,7 @@ const CollegeDetails = () => {
     switch (activeTab) {
       case "About":
         return (
-          <View style={styles.tabContent}>
-            <View style={styles.aboutContainer}>
-              <Text style={styles.label}>Institute Name:</Text>
-              <Text style={styles.value} numberOfLines={3}>
-                {college?.instituteName}
-              </Text>
-            </View>
-            
-            <View style={styles.aboutContainer}>
-              <Text style={styles.label}>City:</Text>
-              <Text style={styles.value} numberOfLines={2}>
-                {college?.city}
-              </Text>
-            </View>
-            
-            <View style={styles.aboutContainer}>
-              <Text style={styles.label}>Status:</Text>
-              <Text style={styles.value} numberOfLines={2}>
-                {college?.Status || 'N/A'}
-              </Text>
-            </View>
-          </View>
+          <AboutTab college={college} styles={styles} />
         );
       
       case "Cutoff":
@@ -200,7 +212,7 @@ const CollegeDetails = () => {
 
           <View style={{alignItems: "flex-end"}}>
             <Text style={styles.intake}>
-              7963
+              {college?.additionalMetadata?.totalIntake || "N/A"}
             </Text>
             <Text style={styles.description}>
               Total Intake
@@ -210,7 +222,7 @@ const CollegeDetails = () => {
           
         </View>
         <Text style={styles.title}>{college.instituteName}</Text>
-        <Text style={styles.subtitle}>City: {college.city ? college.city.toUpperCase(): "N/A"}</Text>
+        <Text style={styles.subtitle}>{college.city ? college.city.toUpperCase(): "N/A"}</Text>
         
         <TabBar activeTab={activeTab} onTabPress={setActiveTab} />
         {renderTabContent()}

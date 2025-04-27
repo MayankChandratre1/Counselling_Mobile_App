@@ -177,7 +177,7 @@ const Landing = () => {
             {videoId ? (
               <YoutubePlayer
                 height={SCREEN_WIDTH * 0.5625}
-                play={true}
+                play={false}
                 videoId={videoId}
                 onError={(e) => {
                   console.error('YouTube Player Error:', e);
@@ -347,11 +347,11 @@ const styles = StyleSheet.create({
     borderColor: '#E6E1FF',
   },
   testimonialQuote: {
-    fontSize: 60,
+    fontSize: 40,
     color: '#371981',
     opacity: 0.2,
     position: 'absolute',
-    top: 0,
+    top: 8,
     left: 10,
     fontFamily: FONTS.BOLD,
   },

@@ -8,6 +8,7 @@ interface CollegeProps {
     instituteName: string;
     city: string;
     image?: string;
+    additionalMetadata?: any;
   };
   onPress: (college: any) => void;
 }
@@ -43,6 +44,7 @@ const CollegeCard = ({ college, onPress }: CollegeProps) => {
 
       <View style={styles.contentContainer}>
         <Text style={styles.location}>{college.city ? `${college.city.toUpperCase().charAt(0)}${college.city.substring(1)}`: ""} </Text>
+        <Text style={styles.location}>{college.additionalMetadata?.status ? `${college.additionalMetadata.status}`: ""} </Text>
         <Text style={styles.instituteName} numberOfLines={2}>
           {college.instituteName}
         </Text>

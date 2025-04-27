@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native'
+import { StyleSheet, View, ScrollView, TouchableOpacity, Dimensions, Platform } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import TopBar from '../General/TopBar';
@@ -7,6 +7,9 @@ import { getUserData, getUserPlanData } from '../../utils/storage';
 import CustomText from '../General/CustomText';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CounsellingCards from './CounsellingCards';
+
+// Get screen dimensions for responsive layout
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const features = [
   "Personalized College Recommendations",
@@ -93,40 +96,99 @@ const FreeDashboard = ({ navigation }: any) => {
     },
   ];
 
+  // Determine cards per row based on screen width
+  const getGridColumns = () => {
+    if (SCREEN_WIDTH < 320) return 1; // Single column for very small screens
+    return 2; // Default 2 columns
+  };
+
+  const gridColumns = getGridColumns();
+  const cardWidth = gridColumns === 1 ? '100%' : '48%';
+
   return (
     <View style={styles.container}>
       <TopBar heading="Counselling Dashboard" />
       
       <ScrollView 
         style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: SCREEN_WIDTH < 360 ? 10 : 15 }
+        ]}
       >
         <View style={styles.currentPlanWrapper}>
           <View style={styles.currentPlanCard}>
-            <CustomText style={styles.currentPlan}>Current Plan: {currentPlan}</CustomText>
-            <TouchableOpacity onPress={() => setShowPlansModal(true)}>
+            <CustomText 
+              style={styles.currentPlan}
+              numberOfLines={1}
+            >
+              Current Plan: {currentPlan}
+            </CustomText>
+            <TouchableOpacity 
+              onPress={() => setShowPlansModal(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessible={true}
+              accessibilityLabel="Upgrade your plan"
+              accessibilityRole="button"
+            >
               <CustomText style={styles.upgradeText}>Upgrade</CustomText>
             </TouchableOpacity>
           </View>
         </View>
         
-        <View style={styles.dashboardContainer}>
+        <View style={[
+          styles.dashboardContainer,
+          { flexDirection: gridColumns === 1 ? 'column' : 'row' }
+        ]}>
           {dashboardCards.map((card, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.dashboardCard, { backgroundColor: card.color }, card.locked && styles.lockedCard]}
+              style={[
+                styles.dashboardCard, 
+                { backgroundColor: card.color, width: cardWidth }, 
+                card.locked && styles.lockedCard,
+                gridColumns === 1 && { minHeight: 130 }
+              ]}
               onPress={() => card.route && !card.locked && navigation.navigate(card.route)}
               disabled={card.locked}
+              accessible={true}
+              accessibilityLabel={`${card.title}: ${card.description}${card.locked ? '. Premium only' : ''}`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: card.locked }}
             >
               <View style={styles.cardContent}>
-                <MaterialCommunityIcons name={card.icon} size={32} color="#fff" />
-                <CustomText style={styles.cardTitle}>{card.title}</CustomText>
-                <CustomText style={styles.cardDescription}>{card.description}</CustomText>
+                <MaterialCommunityIcons 
+                  name={card.icon} 
+                  size={SCREEN_WIDTH < 360 ? 28 : 32} 
+                  color="#fff" 
+                />
+                <CustomText 
+                  style={[
+                    styles.cardTitle,
+                    { fontSize: SCREEN_WIDTH < 360 ? 16 : 18 }
+                  ]}
+                  numberOfLines={1}
+                >
+                  {card.title}
+                </CustomText>
+                <CustomText 
+                  style={[
+                    styles.cardDescription,
+                    { fontSize: SCREEN_WIDTH < 360 ? 13 : 14 }
+                  ]}
+                  numberOfLines={2}
+                >
+                  {card.description}
+                </CustomText>
               </View>
               
               {card.locked && (
                 <View style={styles.lockedOverlay}>
-                  <MaterialCommunityIcons name="lock" size={40} color="#fff" />
+                  <MaterialCommunityIcons 
+                    name="lock" 
+                    size={SCREEN_WIDTH < 360 ? 36 : 40} 
+                    color="#fff" 
+                  />
                   <CustomText style={styles.lockedText}>Premium Only</CustomText>
                 </View>
               )}
@@ -137,11 +199,20 @@ const FreeDashboard = ({ navigation }: any) => {
         <TouchableOpacity 
           style={styles.upgradeCTA}
           onPress={() => setShowPlansModal(true)}
+          accessible={true}
+          accessibilityLabel="Upgrade to Premium to unlock all features"
+          accessibilityRole="button"
         >
-          <CustomText style={styles.upgradeCTAText}>
+          <CustomText 
+            style={[
+              styles.upgradeCTAText,
+              { fontSize: SCREEN_WIDTH < 360 ? 14 : 16 }
+            ]}
+            numberOfLines={1}
+          >
             Upgrade to Premium to unlock all features
           </CustomText>
-          <Icon name="arrow-right" size={20} color="#371981" />
+          <Icon name="arrow-right" size={SCREEN_WIDTH < 360 ? 18 : 20} color="#371981" />
         </TouchableOpacity>
       </ScrollView>
       
@@ -166,16 +237,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 15,
-    paddingBottom: 40,
+    paddingVertical: 15,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
   },
   currentPlanWrapper: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   currentPlanCard: {
     backgroundColor: '#371981',
     borderRadius: 15,
-    padding: 15,
+    padding: SCREEN_WIDTH < 360 ? 12 : 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -186,26 +257,26 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   currentPlan: {
-    fontSize: 18,
+    fontSize: SCREEN_WIDTH < 360 ? 16 : 18,
     fontWeight: 'bold',
     color: '#fff',
+    flex: 1, // Allow text to compress if needed
+    paddingRight: 10,
   },
   upgradeText: {
     color: '#FFEB3B',
-    fontSize: 16,
+    fontSize: SCREEN_WIDTH < 360 ? 14 : 16,
     fontWeight: 'bold',
   },
   dashboardContainer: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   dashboardCard: {
-    width: '48%',
     borderRadius: 15,
-    padding: 16,
+    padding: SCREEN_WIDTH < 360 ? 14 : 16,
     marginBottom: 15,
-    minHeight: 160,
+    minHeight: SCREEN_HEIGHT < 700 ? 140 : 160,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -216,17 +287,16 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    justifyContent: 'space-between', // Better spacing of content
   },
   cardTitle: {
     color: '#fff',
-    fontSize: 18,
     fontWeight: 'bold',
     marginTop: 10,
     marginBottom: 5,
   },
   cardDescription: {
     color: '#fff',
-    fontSize: 14,
     opacity: 0.9,
   },
   lockedCard: {
@@ -241,7 +311,7 @@ const styles = StyleSheet.create({
   },
   lockedText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: SCREEN_WIDTH < 360 ? 14 : 16,
     fontWeight: 'bold',
     marginTop: 8,
   },
@@ -250,7 +320,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F0F0FF',
-    padding: 15,
+    padding: SCREEN_WIDTH < 360 ? 12 : 15,
     borderRadius: 10,
     marginTop: 10,
     borderWidth: 1,
@@ -259,8 +329,7 @@ const styles = StyleSheet.create({
   },
   upgradeCTAText: {
     color: '#371981',
-    fontSize: 16,
     marginRight: 8,
     fontWeight: '500',
   },
-})
+});

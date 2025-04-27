@@ -1,13 +1,31 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Dimensions, Animated } from 'react-native'
+import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Dimensions, Animated, Platform } from 'react-native'
 import React, { useState, useEffect, useRef } from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import CustomText from '../General/CustomText'
 
 // Get screen dimensions for responsive layout
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 320);
-const CARD_MARGIN = 10;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// More responsive card sizing based on screen width
+const getResponsiveCardWidth = () => {
+  // Small screens get narrower cards
+  if (SCREEN_WIDTH < 320) {
+    return SCREEN_WIDTH * 0.75; // Even smaller for very small screens
+  }
+  else if (SCREEN_WIDTH < 360) {
+    return SCREEN_WIDTH * 0.78;
+  }
+  // Medium screens
+  else if (SCREEN_WIDTH < 400) {
+    return SCREEN_WIDTH * 0.80;
+  }
+  // Larger screens have a max width
+  return Math.min(SCREEN_WIDTH * 0.85, 320);
+};
+
+const CARD_WIDTH = getResponsiveCardWidth();
+const CARD_MARGIN = 8; // Reduced margin for smaller screens
 
 interface PlanCardProps {
   title: string;
@@ -24,35 +42,67 @@ interface CounsellingCardsProps {
   features: string[];
 }
 
-const PlanCard = ({ title, price, features, isPremium, onGetStarted }: PlanCardProps) => (
-  <View style={styles.card}>
-    <CustomText style={styles.title}>{title}</CustomText>
-    <CustomText style={styles.price}>₹{price}</CustomText>
-    <View style={styles.featuresContainer}>
-      {features.slice(0, 5).map((feature, index) => (
-        <View key={index} style={styles.featureRow}>
-          <Icon 
-            name="check-circle" 
-            size={20} 
-            color={isPremium ? "#4CAF50" : "#371981"} 
-          />
-          <CustomText style={styles.featureText}>{feature}</CustomText>
-        </View>
-      ))}
+const PlanCard = ({ title, price, features, isPremium, onGetStarted }: PlanCardProps) => {
+  // Determine how many features to show based on screen size
+  const getVisibleFeatures = () => {
+    if (SCREEN_HEIGHT < 600) return 2; // Very small screens
+    if (SCREEN_WIDTH < 360) return 3; // Small screens
+    return 4; // Regular screens (reduced from 5)
+  };
+  
+  const visibleFeatures = getVisibleFeatures();
+  
+  return (
+    <View style={[styles.card, isPremium && styles.premiumCard]}>
+      <CustomText style={styles.title} numberOfLines={1} ellipsizeMode="tail">{title}</CustomText>
+      <CustomText style={styles.price}>₹{price}</CustomText>
+      <View style={styles.featuresContainer}>
+        {features.slice(0, visibleFeatures).map((feature, index) => (
+          <View key={index} style={styles.featureRow}>
+            <Icon 
+              name="check-circle" 
+              size={16} 
+              color={isPremium ? "#4CAF50" : "#371981"} 
+              style={styles.featureIcon}
+            />
+            <CustomText 
+              style={styles.featureText} 
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {feature}
+            </CustomText>
+          </View>
+        ))}
+      </View>
+      <TouchableOpacity 
+        style={[styles.button, isPremium ? styles.premiumButton : styles.standardButton]}
+        onPress={() => onGetStarted({ price, features, isPremium, title })}
+        accessible={true}
+        accessibilityLabel={`Get Started with ${title} plan for ₹${price}`}
+        accessibilityRole="button"
+      >
+        <CustomText style={styles.buttonText}>Get Started</CustomText>
+      </TouchableOpacity>
     </View>
-    <TouchableOpacity 
-      style={[styles.button, isPremium ? styles.premiumButton : styles.standardButton]}
-      onPress={() => onGetStarted({ price, features, isPremium, title })}
-    >
-      <CustomText style={styles.buttonText}>Get Started</CustomText>
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 const CounsellingCards = ({ visible, onClose, onUpgrade, features }: CounsellingCardsProps) => {
   const [showAll, setShowAll] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Get responsive modal height based on screen size
+  const getModalHeight = () => {
+    if (showAll) {
+      return SCREEN_HEIGHT * 0.7; // More space when showing all features
+    }
+    if (SCREEN_HEIGHT < 700) {
+      return SCREEN_HEIGHT * 0.55; // Smaller screens get smaller modal
+    }
+    return SCREEN_HEIGHT * 0.6; // Default size
+  };
 
   useEffect(() => {
     if (visible) {
@@ -97,6 +147,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
             styles.modalContainer,
             {
               opacity: fadeAnim,
+              maxHeight: getModalHeight(),
               transform: [
                 {
                   translateY: slideAnim.interpolate({
@@ -109,71 +160,107 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
           ]}
         >
           <View style={styles.modalHeader}>
-            <CustomText style={styles.modalTitle}>Upgrade Your Plan</CustomText>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <CustomText 
+              style={styles.modalTitle}
+              accessible={true}
+              accessibilityRole="header"
+            >
+              Upgrade Your Plan
+            </CustomText>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={onClose}
+              accessible={true}
+              accessibilityLabel="Close plan selection"
+              accessibilityRole="button"
+            >
               <AntDesign name="close" size={24} color="#333" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.cardsContainer}
-            snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
-            decelerationRate="fast"
-            pagingEnabled
-          >
-            <PlanCard 
-              title="Premium" 
-              price="499" 
-              features={features} 
-              isPremium={false}
-              onGetStarted={onUpgrade}
-            />
-            <PlanCard 
-              title="Counselling" 
-              price="6,999" 
-              features={features} 
-              isPremium={true}
-              onGetStarted={onUpgrade}
-            />
-          </ScrollView>
+          <View style={styles.scrollViewContainer}>
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cardsContainer}
+              snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
+              decelerationRate="fast"
+              pagingEnabled
+              accessible={true}
+              accessibilityLabel="Plan options"
+            >
+              <PlanCard 
+                title="Premium" 
+                price="499" 
+                features={features} 
+                isPremium={false}
+                onGetStarted={onUpgrade}
+              />
+              <PlanCard 
+                title="Counselling" 
+                price="6,999" 
+                features={features} 
+                isPremium={true}
+                onGetStarted={onUpgrade}
+              />
+            </ScrollView>
+          </View>
 
           <TouchableOpacity 
             style={styles.showFeaturesButton} 
             onPress={() => setShowAll(!showAll)}
+            accessible={true}
+            accessibilityLabel={showAll ? "Hide all features" : "Show all features"}
+            accessibilityRole="button"
           >
             <CustomText style={styles.showFeaturesText}>
               {showAll ? "Hide Features" : "Show All Features"}
             </CustomText>
             <Icon 
               name={showAll ? "chevron-up" : "chevron-down"} 
-              size={20} 
+              size={18} 
               color="#371981" 
             />
           </TouchableOpacity>
 
           {showAll && (
-            <View style={styles.allFeaturesContainer}>
+            <ScrollView 
+              style={styles.allFeaturesContainer}
+              contentContainerStyle={styles.allFeaturesContent}
+              showsVerticalScrollIndicator={true}
+              accessible={true}
+              accessibilityLabel="All plan features"
+            >
               {features.map((feature, index) => (
                 <View key={index} style={styles.allFeatureItem}>
-                  <Icon name="check-circle" size={16} color="#371981" />
+                  <Icon 
+                    name="check-circle" 
+                    size={16} 
+                    color="#371981" 
+                    style={styles.featureIcon}
+                  />
                   <CustomText style={styles.allFeatureText}>{feature}</CustomText>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           )}
           
-          <TouchableOpacity style={styles.skipButton} onPress={onClose}>
+          <TouchableOpacity 
+            style={styles.skipButton} 
+            onPress={onClose}
+            accessible={true}
+            accessibilityLabel="Continue with free plan"
+            accessibilityRole="button"
+          >
             <CustomText style={styles.skipButtonText}>Continue with Free Plan</CustomText>
           </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
-  )
-}
+  );
+};
 
-export default CounsellingCards
+export default CounsellingCards;
 
 const styles = StyleSheet.create({
   modalOverlay: {
@@ -185,35 +272,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingVertical: 20,
-    paddingBottom: 30,
-    maxHeight: '85%',
+    paddingTop: 15,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 25, // Extra padding for iOS
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: SCREEN_WIDTH < 360 ? 18 : 20,
     fontWeight: 'bold',
     color: '#371981',
   },
   closeButton: {
     padding: 8,
+    
+  },
+  scrollViewContainer: {
+    // Using fixed height instead of flex prevents layout issues
+    height: SCREEN_HEIGHT < 700 ? 300 : 320,
   },
   cardsContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 5,
+    paddingHorizontal: SCREEN_WIDTH < 360 ? 8 : 15,
     alignItems: 'center',
   },
   card: {
     width: CARD_WIDTH,
     backgroundColor: '#fff',
     borderRadius: 15,
-    padding: 20,
+    padding: SCREEN_WIDTH < 360 ? 12 : 16,
     marginHorizontal: CARD_MARGIN,
     elevation: 4,
     shadowColor: '#000',
@@ -222,38 +313,49 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
+    // Ensure cards have a reasonable height constraint
+    maxHeight: SCREEN_HEIGHT * 0.5,
+  },
+  premiumCard: {
+    borderColor: '#4CAF50',
+    borderWidth: 1.5,
   },
   title: {
-    fontSize: 22,
+    fontSize: SCREEN_WIDTH < 360 ? 18 : 20,
     fontWeight: 'bold',
     color: '#371981',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   price: {
-    fontSize: 32,
+    fontSize: SCREEN_WIDTH < 360 ? 24 : 28,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: SCREEN_HEIGHT < 700 ? 10 : 15,
   },
   featuresContainer: {
-    marginBottom: 20,
+    marginBottom: SCREEN_HEIGHT < 700 ? 12 : 18,
   },
   featureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start', // Align to top in case text wraps
+    marginBottom: 6,
+  },
+  featureIcon: {
+    marginTop: 2, // Align icon with text
   },
   featureText: {
-    marginLeft: 10,
-    fontSize: 14,
+    marginLeft: 8,
+    fontSize: SCREEN_WIDTH < 360 ? 12 : 13,
     color: '#555',
+    flex: 1, // Allow text to shrink on small screens
   },
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: SCREEN_WIDTH < 360 ? 8 : 10,
+    paddingHorizontal: 16,
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44, // Smaller but still accessible touch target
   },
   standardButton: {
     backgroundColor: '#371981',
@@ -263,49 +365,53 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: SCREEN_WIDTH < 360 ? 14 : 15,
     fontWeight: 'bold',
   },
   showFeaturesButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
-    marginTop: 5,
+    paddingVertical: 12,
+    minHeight: 40,
   },
   showFeaturesText: {
     color: '#371981',
-    fontSize: 16,
+    fontSize: SCREEN_WIDTH < 360 ? 14 : 15,
     fontWeight: '500',
     marginRight: 5,
   },
   allFeaturesContainer: {
     backgroundColor: '#f9f9f9',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
     marginHorizontal: 15,
     borderRadius: 12,
-    maxHeight: 200,
+    maxHeight: SCREEN_HEIGHT * 0.2,
+  },
+  allFeaturesContent: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
   },
   allFeatureItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
+    alignItems: 'flex-start',
+    paddingVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#eaeaea',
   },
   allFeatureText: {
-    marginLeft: 10,
-    fontSize: 14,
+    marginLeft: 8,
+    fontSize: SCREEN_WIDTH < 360 ? 12 : 13,
     color: '#333',
+    flex: 1, // Allow text to wrap
   },
   skipButton: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 15,
     paddingVertical: 10,
+    minHeight: 40,
   },
   skipButtonText: {
     color: '#666',
-    fontSize: 15,
+    fontSize: SCREEN_WIDTH < 360 ? 13 : 14,
   },
 });

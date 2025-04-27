@@ -1,240 +1,341 @@
-import { Pressable, StyleSheet, View, ScrollView } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { Pressable, StyleSheet, View, ScrollView, Dimensions, SafeAreaView } from 'react-native'
+import React, { useEffect, useState, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Icon from 'react-native-vector-icons/FontAwesome6'
 import CounsellingStep from './CounsellingStep'
 import { RequestMethod, secureRequest } from '../../utils/tokenedRequest'
 import config from '../../configs/API'
 import { getUserData } from '../../utils/storage'
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native'
 import TopBar from '../General/TopBar'
 import CustomText from '../General/CustomText'
+import { useFocusEffect } from '@react-navigation/native'
+
+// Get screen dimensions for responsive sizing
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
+
+// Design system values for consistent spacing and sizing
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32
+}
 
 const CounsellingForm = () => {
-  const navigation = useNavigation<any>();
-  const cancePlan = async () => {
-    // Here add your API call and navigation logic
-    await AsyncStorage.removeItem('plan');
-  }
+  const navigation = useNavigation<any>()
+  const [steps, setSteps] = useState<any[] | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+  const [editingStep, setEditingStep] = useState<number | null>(null)
+  const [stepsData, setStepsData] = useState<{[key: number]: {status: 'Yes' | 'No', remark: string, verdict?: string}}>({})
+  const [refreshing, setRefreshing] = useState<boolean>(false)
 
-  const [steps, setSteps] = React.useState<any[] | null>(null);
-  const [editingStep, setEditingStep] = useState<number | null>(null);
-  const [stepsData, setStepsData] = useState<{[key: number]: {status: 'Yes' | 'No', remark: string, verdict?: string}}>({});
+  const cancelPlan = async () => {
+    try {
+      await AsyncStorage.removeItem('plan')
+      // Add feedback to user that plan was canceled
+    } catch (error) {
+      console.error('Error canceling plan:', error)
+    }
+  }
 
   const handleEdit = (stepNumber: number) => {
-    setEditingStep(stepNumber);
-  };
-
-  const handleAcceptVerdict = async (stepNumber: number) => {
-    // Get the current step data
-    const currentStepData = stepsData[stepNumber] || {};
-    
-    // Create updated data with accept flag
-    const updatedData = {
-      ...currentStepData,
-      accept: true
-    };
-    
-    // Save the updated data using the existing handleSave function
-    await handleSave(stepNumber, updatedData);
-  };
-
-  const handleSave = async (stepNumber: number, data: any) => {
-    // Create a copy of data that includes any existing fields like verdict
-    const updatedData = {
-      ...(stepsData[stepNumber] || {}), // Preserve any existing data
-      ...data // Apply new updates
-    };
-    
-    const edited_data = {
-      ...stepsData,
-      [stepNumber]: updatedData
-    };
-    
-    setStepsData(prev => ({
-      ...prev,
-      [stepNumber]: updatedData
-    }));
-    setEditingStep(null);
-  
-    // Log all steps data
-    const allStepsData = steps?.map(step => ({
-      ...step,
-      ...(edited_data[step.number] || { status: 'No', remark: '' })
-    }));
-    
-    const userData = await getUserData()
-    
-    const updateResponse = await secureRequest(`${config.USER_API}/formdata/${userData.phone}/elite-1234567`, RequestMethod.POST, {
-      body: {
-        steps: allStepsData
-      }
-    });
-    console.log(updateResponse, allStepsData);
-    
-  };
-
-  const fetchSteps = async () => {
-    const user = await getUserData()
-    const response:any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/elite-1234567`, RequestMethod.GET);
-
-    setStepsData(response.data?.steps.reduce((acc: any, step: any) => {
-      acc[step.number] = step;
-      return acc;
-    }, {}));    
-    console.log("Steps: ", response.data);
-    setSteps(response.data?.steps as any[]);
+    setEditingStep(stepNumber)
   }
 
-  useEffect(() => {
-    fetchSteps();
-  },[])
+  const handleAcceptVerdict = async (stepNumber: number) => {
+    try {
+      // Get the current step data
+      const currentStepData = stepsData[stepNumber] || {}
+      
+      // Create updated data with accept flag
+      const updatedData = {
+        ...currentStepData,
+        accept: true
+      }
+      
+      // Save the updated data using the existing handleSave function
+      await handleSave(stepNumber, updatedData)
+    } catch (error) {
+      console.error('Error accepting verdict:', error)
+    }
+  }
+
+  const handleSave = async (stepNumber: number, data: any) => {
+    try {
+      setLoading(true)
+      // Create a copy of data that includes any existing fields like verdict
+      const updatedData = {
+        ...(stepsData[stepNumber] || {}), // Preserve any existing data
+        ...data // Apply new updates
+      }
+      
+      const edited_data = {
+        ...stepsData,
+        [stepNumber]: updatedData
+      }
+      
+      setStepsData(prev => ({
+        ...prev,
+        [stepNumber]: updatedData
+      }))
+      setEditingStep(null)
+    
+      // Log all steps data
+      const allStepsData = steps?.map(step => ({
+        ...step,
+        ...(edited_data[step.number] || { status: 'No', remark: '' })
+      }))
+      
+      const userData = await getUserData()
+      
+      const updateResponse = await secureRequest(`${config.USER_API}/formdata/${userData.phone}/elite-1234567`, RequestMethod.POST, {
+        body: {
+          steps: allStepsData
+        }
+      })
+      
+      // Show success feedback
+    } catch (error) {
+      console.error('Error saving step data:', error)
+      setError('Failed to save changes. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSteps = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const user = await getUserData()
+      const response: any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/elite-1234567`, RequestMethod.GET)
+      
+      if (response.data?.steps) {
+        setStepsData(response.data.steps.reduce((acc: any, step: any) => {
+          acc[step.number] = step
+          return acc
+        }, {}))    
+        setSteps(response.data.steps as any[])
+      } else {
+        setError('No steps data found')
+      }
+    } catch (error) {
+      console.error("Error fetching steps:", error)
+      setError('Failed to load data. Pull down to refresh.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    fetchSteps()
+  }
+
+  // Reload data when screen focuses
+  useFocusEffect(
+    useCallback(() => {
+      fetchSteps()
+      return () => {}
+    }, [])
+  )
 
   const calculateProgress = () => {
-    if (!steps || steps.length === 0) return { completed: 0, total: 0, percentage: 0 };
+    if (!steps || steps.length === 0) return { completed: 0, total: 0, percentage: 0 }
     
-    const total = steps.length;
-    const completed = Object.values(stepsData).filter(step => step?.status === 'Yes').length;
-    const percentage = Math.round((completed / total) * 100);
+    const total = steps.length
+    const completed = Object.values(stepsData).filter(step => step?.status === 'Yes').length
+    const percentage = Math.round((completed / total) * 100)
     
-    return { completed, total, percentage };
-  };
+    return { completed, total, percentage }
+  }
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Icon name="clipboard-list" size={64} color="#ccc" />
+      <CustomText style={styles.emptyStateText}>
+        {error || 'No steps available'}
+      </CustomText>
+      <Pressable style={styles.retryButton} onPress={fetchSteps}>
+        <CustomText style={styles.retryButtonText}>Retry</CustomText>
+      </Pressable>
+    </View>
+  )
 
   return (
-    <View style={styles.mainContainer}>
-      <TopBar heading="Track Progress" />
-      <View style={styles.eliteMember}>
-        <View style={styles.eliteHeader}>
-          <View style={styles.iconContainer}>
-            <Icon name="crown" size={32} color="#613EEA" />
-          </View>
-          <CustomText style={styles.eliteText}>Elite Member</CustomText>
-        </View>
-        
-        <View style={styles.progressMetrics}>
-          <CustomText style={styles.progressText}>
-            {`${calculateProgress().completed}/${calculateProgress().total} Steps`}
-            
-          </CustomText>
-          <View style={styles.progressBarContainer}>
-            <View 
-              style={[
-                styles.progressBarFill, 
-                { width: `${calculateProgress().percentage}%` }
-              ]} 
-            />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.mainContainer}>
+        <TopBar heading="Track Progress" />
+        <View style={styles.eliteMember}>
+          <View style={styles.eliteHeader}>
+            <View style={styles.iconContainer}>
+              <Icon name="crown" size={28} color="#613EEA" />
+            </View>
+            <CustomText style={styles.eliteText}>Elite Member</CustomText>
           </View>
           
-        </View>
-      </View>
-
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.stepsContainer}>
-          <View style={styles.timelineBar}>
-            <View style={styles.timelineLine} />
-          </View>
-          {
-            steps && steps.length > 0 &&steps?.map((step, index) => (
-              <CounsellingStep 
-                key={step.number}
-                step={step}
-                onEdit={() => handleEdit(step.number)}
-                onSave={handleSave}
-                isEditing={editingStep === step.number}
-                stepData={stepsData[step.number]}
-                isCompleted={!!stepsData[step.number]} // Mark as completed if step has data
-                leftCTA={step.showListButton ? {
-                  label:"View Lists",
-                  onPress: () => navigation.navigate('MyLists')
-                } : step.isVerdict ? {
-                  label: "Accept",
-                  onPress: () => handleAcceptVerdict(step.number)
-                } : undefined}
+          <View style={styles.progressMetrics}>
+            <View style={styles.progressHeader}>
+              <CustomText style={styles.progressText}>
+                {`${calculateProgress().completed}/${calculateProgress().total} Steps`}
+              </CustomText>
+              <CustomText style={styles.percentageText}>
+                {`${calculateProgress().percentage}%`}
+              </CustomText>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View 
+                style={[
+                  styles.progressBarFill, 
+                  { width: `${calculateProgress().percentage}%` }
+                ]} 
               />
-            ))
-          }  
+            </View>
+          </View>
         </View>
-      </ScrollView>
-    </View>
+
+        <ScrollView 
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            (!steps || steps.length === 0) && styles.scrollContentEmpty
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {(!steps || steps.length === 0) ? renderEmptyState() : (
+            <View style={styles.stepsContainer}>
+              <View style={styles.timelineBar}>
+                <View style={styles.timelineLine} />
+              </View>
+              {steps.map((step, index) => (
+                <CounsellingStep 
+                  key={step.number}
+                  step={step}
+                  onEdit={() => handleEdit(step.number)}
+                  onSave={handleSave}
+                  stepData={stepsData[step.number]}
+                  isCompleted={!!stepsData[step.number]} 
+                  leftCTA={step.showListButton ? {
+                    label: "View Lists",
+                    onPress: () => navigation.navigate('MyLists')
+                  } : step.isVerdict ? {
+                    label: "Accept",
+                    onPress: () => handleAcceptVerdict(step.number)
+                  } : undefined}
+                />
+              ))}  
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   eliteMember: {
     backgroundColor: '#613EEA',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   eliteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
-    marginBottom: 15,
+    gap: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
   },
   progressMetrics: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 12,
+    padding: SPACING.md,
   },
   progressText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '500',
-    marginBottom: 8,
+  },
+  percentageText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   progressBarContainer: {
     height: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
-    marginBottom: 8,
+    marginVertical: SPACING.xs,
+    overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#fff',
     borderRadius: 4,
   },
-  percentageText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'right',
-  },
   iconContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 56,
-    height: 56,
+    backgroundColor: '#fff',
+    width: 42,
+    height: 42,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   eliteText: {
     color: '#FFFFFF',
-    fontSize: 36,
+    fontSize: SCREEN_WIDTH < 360 ? 20 : 22,
     fontWeight: 'bold',
   },
-  container: {
+  scrollContainer: {
     flex: 1,
-    backgroundColor: '#fff',
   },
-  contentContainer: {
-    paddingBottom: 100,
+  scrollContent: {
+    paddingBottom: SPACING.xl * 2,
+  },
+  scrollContentEmpty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stepsContainer: {
     position: 'relative',
-    paddingTop:20,
+    paddingTop: SPACING.lg,
     flexGrow: 1,
   },
   timelineBar: {
     width: "10%",
     height: "100%",
     position: 'absolute',
-    paddingInline: 10,
+    paddingHorizontal: SPACING.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginInline: 15,
+    marginHorizontal: SPACING.md,
   },
   timelineLine: {
     width: 4,
@@ -242,17 +343,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#613EEA80',
     margin: 'auto',
   },
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
   },
-  scrollContainer: {
-    flex: 1,
-    
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.md,
   },
-  scrollContent: {
-    paddingBottom: 40,
+  retryButton: {
+    backgroundColor: '#613EEA',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: 20,
+    marginTop: SPACING.md,
   },
-})
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+});
 
 export default CounsellingForm
