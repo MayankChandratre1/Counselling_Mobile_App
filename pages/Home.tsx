@@ -70,6 +70,39 @@ import {
           }
       ]);
   
+      const [recommendedColleges, setRecommendedColleges] = useState([
+        {
+            id: '1',
+            instituteName: 'IIT Bombay',
+            city: 'Mumbai',
+          
+            additionalMetadata: {
+                status: 'Government',
+                totalIntake: 1200
+            }
+        },
+        {
+            id: '2',
+            instituteName: 'NIT Surathkal',
+            city: 'Karnataka',
+         
+            additionalMetadata: {
+                status: 'Government',
+                totalIntake: 800
+            }
+        },
+        {
+            id: '3',
+            instituteName: 'VJTI Mumbai',
+            city: 'Mumbai',
+           
+            additionalMetadata: {
+                status: 'Government-Aided',
+                totalIntake: 650
+            }
+        }
+    ]);
+
       useEffect(() => {
           loadUserData();
       }, []);
@@ -219,7 +252,7 @@ import {
                       ))}
                   </View>
   
-                  {/* Recommended Colleges */}
+                  {/* Recommended Colleges - Updated Section */}
                   <View style={styles.collegesContainer}>
                       <View style={styles.sectionHeader}>
                           <CustomText style={styles.sectionTitle}>Browse Colleges</CustomText>
@@ -232,25 +265,20 @@ import {
                           </TouchableOpacity>
                       </View>
                       
-                      <CollegeCard 
-                          college={{
-                              id: '1',
-                              instituteName: 'IIT Bombay',
-                              city: 'Mumbai',
-                           
-                          }}
-                          onPress={() => navigation.navigate('CollegeDetails', { collegeId: '1' })}
-                      />
-                      
-                      <CollegeCard 
-                          college={{
-                              id: '2',
-                              instituteName: 'NIT Surathkal',
-                              city: 'Karnataka',
-                             
-                          }}
-                          onPress={() => navigation.navigate('CollegeDetails', { collegeId: '2' })}
-                      />
+                      <ScrollView 
+                          horizontal 
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.collegesScrollContainer}
+                      >
+                          {recommendedColleges.map(college => (
+                              <View key={college.id} style={styles.collegeCardWrapper}>
+                                  <CollegeCard 
+                                      college={college}
+                                      onPress={() => navigation.navigate('CollegeDetails', { collegeId: college.id })}
+                                  />
+                              </View>
+                          ))}
+                      </ScrollView>
                   </View>
   
                   {/* Account Section */}
@@ -455,6 +483,15 @@ import {
           shadowOpacity: 0.1,
           shadowRadius: 4,
           elevation: 2,
+      },
+      collegesScrollContainer: {
+          paddingBottom: 10,
+          paddingRight: 10,
+         
+      },
+      collegeCardWrapper: {
+          width:width * 0.9,
+          marginRight: 10,
       },
       accountSection: {
           padding: 15,

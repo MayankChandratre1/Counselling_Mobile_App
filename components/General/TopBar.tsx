@@ -18,7 +18,7 @@ const TopBar = ({ heading, showBack = true }: TopBarProps) => {
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-u-left-top" size={32} color="#000" />
+          <Icon name="arrow-left" size={28} color="#000" />
         </TouchableOpacity>
       )}
       <Text style={styles.heading}>{heading}</Text>
@@ -30,7 +30,7 @@ export default TopBar
 
 const styles = StyleSheet.create({
   container: {
-    height: 68,
+    height: 58,
     backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   heading: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: '600',
     color: '#000',
   }

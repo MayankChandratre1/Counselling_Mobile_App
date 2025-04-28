@@ -166,34 +166,37 @@ const CounsellingForm = () => {
     </View>
   )
 
+  const progress = calculateProgress()
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
         <TopBar heading="Track Progress" />
-        <View style={styles.eliteMember}>
-          <View style={styles.eliteHeader}>
-            <View style={styles.iconContainer}>
-              <Icon name="crown" size={28} color="#613EEA" />
+        
+        <View style={styles.eliteContainer}>
+          <View style={styles.eliteCardContent}>
+            <View style={styles.eliteHeaderRow}>
+              <View style={styles.badgeContainer}>
+                <Icon name="crown" size={14} color="#FFF" />
+                <CustomText style={styles.badgeText}>ELITE</CustomText>
+              </View>
+              
+              <View style={styles.statsContainer}>
+                <CustomText style={styles.statsText}>
+                  {progress.completed}/{progress.total}
+                </CustomText>
+              </View>
             </View>
-            <CustomText style={styles.eliteText}>Elite Member</CustomText>
-          </View>
-          
-          <View style={styles.progressMetrics}>
-            <View style={styles.progressHeader}>
-              <CustomText style={styles.progressText}>
-                {`${calculateProgress().completed}/${calculateProgress().total} Steps`}
-              </CustomText>
-              <CustomText style={styles.percentageText}>
-                {`${calculateProgress().percentage}%`}
-              </CustomText>
-            </View>
-            <View style={styles.progressBarContainer}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { width: `${calculateProgress().percentage}%` }
-                ]} 
-              />
+            
+            <View style={styles.progressContainer}>
+              <View style={styles.progressLabelContainer}>
+                <CustomText style={styles.progressLabel}>Progress</CustomText>
+                <CustomText style={styles.progressPercentage}>{progress.percentage}%</CustomText>
+              </View>
+              
+              <View style={styles.progressBarBackground}>
+                <View style={[styles.progressBarFill, { width: `${progress.percentage}%` }]} />
+              </View>
             </View>
           </View>
         </View>
@@ -243,74 +246,83 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
-  eliteMember: {
+  eliteContainer: {
+    paddingHorizontal: 0,
+    paddingTop:0,
+    paddingBottom: 0,
+  },
+  eliteCardContent: {
     backgroundColor: '#613EEA',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.md,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    borderRadius: 0,
+    padding: SPACING.md,
+    
   },
-  eliteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  progressHeader: {
+  eliteHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  progressMetrics: {
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  badgeText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 12,
+    marginLeft: 6,
+    letterSpacing: 0.5,
+  },
+  statsContainer: {
+    alignItems: 'center',
+  },
+  statsText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 18,
+  },
+  statsLabel: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  progressContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
-    padding: SPACING.md,
+    padding: SPACING.sm,
   },
-  progressText: {
-    color: '#fff',
-    fontSize: 16,
+  progressLabelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
     fontWeight: '500',
   },
-  percentageText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  progressPercentage: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  progressBarContainer: {
+  progressBarBackground: {
     height: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
-    marginVertical: SPACING.xs,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF',
     borderRadius: 4,
-  },
-  iconContainer: {
-    backgroundColor: '#fff',
-    width: 42,
-    height: 42,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  eliteText: {
-    color: '#FFFFFF',
-    fontSize: SCREEN_WIDTH < 360 ? 20 : 22,
-    fontWeight: 'bold',
   },
   scrollContainer: {
     flex: 1,
