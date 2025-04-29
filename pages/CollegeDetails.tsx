@@ -7,19 +7,10 @@ import CutoffTable from '../components/CollegeDetails/CutoffTable'
 import TabBar from '../components/CollegeDetails/TabBar'
 import CutoffTab from '../components/CollegeDetails/CutoffTab'
 import AboutTab from '../components/Colleges/AboutTab'
+import { useCollegeContext } from '../contexts/CollegeContext'
+import { College } from '../utils/college-data-store'
 
-type CollegeDetailsType = {
-  id: string;
-  instituteName: string;
-  city: string;
-  image?: string;
-  description?: string;
-  instituteCode: string;
-  Status: string;
-  additionalMetadata?: any
-  branches?:any
-  // Add more fields as needed
-}
+type CollegeDetailsType = College
 
 const { COLLEGE_API } = config;
 
@@ -30,6 +21,9 @@ const CollegeDetails = () => {
   const [cutoffs, setCutoffs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("About");
+  
+  // Use the college context to get college data
+  const { getCollegeById, isLoading: contextLoading } = useCollegeContext();
 
   useEffect(() => {
     const fetchCollegeDetails = async () => {
@@ -37,17 +31,26 @@ const CollegeDetails = () => {
         setLoading(true);
         console.log(`Fetching college details for ID: ${route.params.collegeId}`);
         
-        const response = await fetch(`${COLLEGE_API}/colleges/${route.params.collegeId}`);
+        // Get college from context instead of direct API call
+        const collegeData = getCollegeById(route.params.collegeId);
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch college details');
+        if (collegeData) {
+          setCollege(collegeData);
+          setError(null);
+        } else {
+          // Fallback to direct API call if not found in context
+          const response = await fetch(`${COLLEGE_API}/colleges/${route.params.collegeId}`);
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch college details');
+          }
+          
+          const data = await response.json();
+          console.log(data);
+          
+          setCollege(data);
+          setError(null);
         }
-        
-        const data = await response.json();
-        console.log(data);
-        
-        setCollege(data);
-        setError(null);
       } catch (err) {
         setError('Failed to fetch college details');
         console.error(err);
@@ -57,8 +60,7 @@ const CollegeDetails = () => {
     };
 
     fetchCollegeDetails();
-  }, [route.params.collegeId]);
-
+  }, [route.params.collegeId, getCollegeById]);
 
   useEffect(() => {
     if (!college) {
@@ -158,21 +160,14 @@ const CollegeDetails = () => {
     }
   };
 
-  if (loading) {
+  // Show loading state if either context or component is loading
+  if (loading || contextLoading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#613EEA" />
       </View>
     );
   }
-
-  // if (error) {
-  //   return (
-  //     <View style={styles.centerContainer}>
-  //       <Text style={styles.errorText}>{error}</Text>
-  //     </View>
-  //   );
-  // }
 
   if (!college) {
     return (

@@ -17,6 +17,7 @@ import { RequestMethod, secureRequest } from './utils/tokenedRequest';
 import config from './configs/API';
 import { LogLevel, OneSignal } from 'react-native-onesignal';
 import CustomText from './components/General/CustomText';
+import { CollegeProvider } from './contexts/CollegeContext';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -52,10 +53,56 @@ const App = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [oneSignalId, setOneSignalId] = useState<string | null>(null);
+
+  // Get OneSignal Player ID
+  const getOneSignalPlayerId = async () => {
+    try {
+      const id = await OneSignal.User.pushSubscription.getIdAsync();
+      console.log("OneSignal Player ID:", id);
+      setOneSignalId(id);
+      return id;
+    } catch (error) {
+      console.error("Error getting OneSignal Player ID:", error);
+      return null;
+    }
+  };
+
+  // Save OneSignal ID to backend
+  const saveOneSignalIdToBackend = async (playerId: string) => {
+    try {
+      const userData = await getUserData();
+      
+      // Only proceed if the user is logged in
+      if (!userData?.phone) {
+        console.log("User not logged in, cannot save OneSignal ID");
+        return;
+      }
+      
+      console.log("Saving OneSignal ID to backend:", playerId);
+      
+      // Make API call to save the OneSignal ID
+      const response = await secureRequest(
+        `${config.USER_API}/saveOneSignalId`,
+        RequestMethod.POST,
+        {
+          body: {
+            phone: userData.phone,
+            oneSignalId: playerId
+          }
+        }
+      );
+      
+      console.log("Saved OneSignal ID to backend:", response);
+    } catch (error) {
+      console.error("Error saving OneSignal ID to backend:", error);
+    }
+  };
 
   // Initialize OneSignal safely in a separate function
   const initOneSignal = () => {
     try {
+      // Configure OneSignal
       OneSignal.Debug.setLogLevel(LogLevel.Verbose);
       OneSignal.initialize("46e13d6f-ff0e-4b55-9ecd-a372940c61e2");
       
@@ -66,6 +113,27 @@ const App = () => {
       OneSignal.Notifications.addEventListener('click', (event) => {
         console.log('OneSignal: notification clicked:', event);
       });
+      
+      // Set up subscription observer to capture ID when available
+      OneSignal.User.pushSubscription.addEventListener('change', async (event) => {
+        console.log('OneSignal: subscription changed:', event);
+        
+        // If we have a subscription ID, save it
+        if (event.current.id) {
+          console.log('OneSignal: new subscription ID:', event.current.id);
+          setOneSignalId(event.current.id);
+          
+          // Try to save to backend if user is logged in
+          const userData = await getUserData();
+          if (userData?.phone) {
+            saveOneSignalIdToBackend(event.current.id);
+          }
+        }
+      });
+      
+      // Try to get the player ID immediately
+      getOneSignalPlayerId();
+      
     } catch (error) {
       console.error("OneSignal initialization error:", error);
     }
@@ -82,6 +150,12 @@ const App = () => {
       const userData = await getUserData();
       console.log("USERDATA: ", userData);
       setIsLoggedIn(!!userData?.phone);
+      
+      // If user is logged in and we have a OneSignal ID, save it
+      if (userData?.phone && oneSignalId) {
+        saveOneSignalIdToBackend(oneSignalId);
+      }
+      
       return userData;
     } catch (error) {
       console.error("Error checking login status:", error);
@@ -147,6 +221,17 @@ const App = () => {
     initializeApp();
   }, []);
 
+  // Effect to save OneSignal ID to backend when both ID and login status change
+  useEffect(() => {
+    const updateOneSignalId = async () => {
+      if (isLoggedIn && oneSignalId) {
+        await saveOneSignalIdToBackend(oneSignalId);
+      }
+    };
+    
+    updateOneSignalId();
+  }, [isLoggedIn, oneSignalId]);
+
   // Safety timeout effect - ensure splash screen doesn't stay forever
   useEffect(() => {
     const splashTimeout = setTimeout(() => {
@@ -175,7 +260,8 @@ const App = () => {
           {__DEV__ && (
             <CustomText style={styles.debugText}>
               Loading: {isLoading ? 'Yes' : 'No'}, 
-              Splash: {showSplash ? 'Yes' : 'No'}
+              Splash: {showSplash ? 'Yes' : 'No'},
+              OneSignal ID: {oneSignalId || 'None'}
             </CustomText>
           )}
         </View>
@@ -185,6 +271,7 @@ const App = () => {
 
   return (
     <NavigationContainer>
+      <CollegeProvider>
       <View style={{ flex: 1 }}>
         <Stack.Navigator 
           screenOptions={{ 
@@ -220,6 +307,7 @@ const App = () => {
         </Stack.Navigator>
         {isLoggedIn && !isPremium && <PremiumButton />}
       </View>
+      </CollegeProvider>
     </NavigationContainer>
   );
 };

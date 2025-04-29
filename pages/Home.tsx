@@ -21,6 +21,7 @@ import {
   import CollegeCard from '../components/Colleges/CollegeCard'
   import CustomText from '../components/General/CustomText'
   import EventCard from '../components/Events/EventCard'
+import { OneSignal } from 'react-native-onesignal'
   
   const { width } = Dimensions.get('window');
   
@@ -103,10 +104,26 @@ import {
         }
     ]);
 
+      
+
       useEffect(() => {
           loadUserData();
       }, []);
-  
+      
+      const getOneSignalId = async () => {
+        try{
+            const id = await OneSignal.User.pushSubscription.getIdAsync();
+            console.log(id);
+            
+            if(id){
+                Alert.alert("OneSignal ID: "+id);
+                console.log("OneSignal ID: ", id);
+            }
+        }catch(e){
+            console.log("OneSignal ID Error", e);
+        }
+      }
+
       const loadUserData = async () => {
           const data = await getUserData();
           setUserData(data);
@@ -170,7 +187,7 @@ import {
                           <MaterialIcons name="campaign" size={22} color="#fff" />
                       </View>
                       <CustomText style={styles.updateText}>
-                          New Video on Engineering Admissions Process
+                          See newest videos on Yash Aaradhey YouTube Channel
                       </CustomText>
                       <MaterialIcons name="chevron-right" size={22} color="#fff" />
                   </TouchableOpacity>
@@ -219,7 +236,11 @@ import {
                           
                           <TouchableOpacity 
                               style={styles.mainNavItem}
-                              onPress={() => navigation.navigate('Favorites')}
+                            //   onPress={() => navigation.navigate('Favorites')}
+                        //    onPress={() => Alert.alert('Coming Soon!', 'This feature is under development.')}
+                            onPress={()=>{
+                                getOneSignalId()
+                            }}
                           >
                               <View style={[styles.iconCircle, { backgroundColor: '#fff0e6' }]}>
                                   <MaterialIcons name="favorite-outline" size={26} color="#cc6600" />

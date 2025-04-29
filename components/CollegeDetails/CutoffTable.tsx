@@ -207,6 +207,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
     overflow: 'hidden',
+    marginInline:5
   },
   roundHeader: {
     flexDirection: 'row',

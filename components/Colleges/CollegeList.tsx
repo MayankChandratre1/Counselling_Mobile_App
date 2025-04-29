@@ -2,9 +2,8 @@ import { StyleSheet, View, FlatList, ActivityIndicator, Text, TextInput, Touchab
 import React, { useEffect, useState, useCallback, memo } from 'react'
 import CollegeCard from './CollegeCard'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
-import config from '../../configs/API'
-import CustomTextInput from '../General/CustomTextInput'
 import { cities } from '../../data/cities'
+import { useCollegeContext } from '../../contexts/CollegeContext'
 
 interface College {
   id: string;
@@ -12,6 +11,7 @@ interface College {
   city: string;
   branch?: string;
   image?: string;
+  status?: string;
 }
 
 interface FilterOptions {
@@ -20,15 +20,47 @@ interface FilterOptions {
   status: string;
 }
 
-const { COLLEGE_API } = config;
 const { width } = Dimensions.get('window');
 
 const MemoizedCollegeCard = memo(({ college, onPress }: { college: College; onPress: () => void }) => (
   <CollegeCard college={college} onPress={onPress} />
 ));
 
+// Memoized Filter Chip Component
+const FilterChip = memo(({ label, selected, onPress }: { 
+  label: string; 
+  selected: boolean; 
+  onPress: () => void 
+}) => (
+  <TouchableOpacity 
+    style={[
+      styles.filterChip,
+      selected && styles.filterChipSelected
+    ]}
+    onPress={onPress}
+  >
+    <Text style={[
+      styles.filterChipText,
+      selected && styles.filterChipTextSelected
+    ]}>
+      {label}
+    </Text>
+    {selected && (
+      <Icon name="check" size={16} color="#fff" style={styles.chipIcon} />
+    )}
+  </TouchableOpacity>
+));
+
 const CollegeList = ({ navigation }: any) => {
-  const [colleges, setColleges] = useState<College[]>([]);
+  const { 
+    colleges, 
+    isLoading, 
+    error: contextError, 
+    searchColleges, 
+    filterColleges, 
+    refreshColleges 
+  } = useCollegeContext();
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -37,104 +69,83 @@ const CollegeList = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [displayedColleges, setDisplayedColleges] = useState<College[]>([]);
   
   // Filter related states
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({ city: '', branch: '',status:'' });
-  const [availableCities, setAvailableCities] = useState<string[]>(cities);
+  const [filters, setFilters] = useState<FilterOptions>({ city: '', branch: '', status: '' });
+  const [availableCities] = useState<string[]>(cities);
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  
+  // New states for city selection
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const [cityModalVisible, setCityModalVisible] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<string[]>(cities);
 
-  const fetchColleges = async (pageNumber: number, refresh = false) => {
-    try {
-      // Build query parameters including filters
-      let queryParams = `page=${pageNumber}&limit=10`;
+  useEffect(() => {
+    // Update local loading state based on context
+    setLoading(isLoading);
+    if (contextError) {
+      setError(contextError);
+    }
+  }, [isLoading, contextError]);
+  
+  useEffect(() => {
+    // Update displayed colleges based on context data
+    if (colleges.length > 0) {
+      const pageSize = 10;
+      const startIndex = 0;
+      const endIndex = page * pageSize;
+      const paginatedColleges = colleges.slice(startIndex, endIndex);
       
-      if (lastDocId && !refresh) {
-        queryParams += `&lastDocId=${lastDocId}`;
-      }
-      
-      if (filters.city) {
-        queryParams += `&city=${encodeURIComponent(filters.city)}`;
-      }
-      
-      if (filters.branch) {
-        queryParams += `&branch=${encodeURIComponent(filters.branch)}`;
-      }
-      
-      const response = await fetch(`${COLLEGE_API}/colleges?${queryParams}`);
-      const data = await response.json();
-      
-      if (data.colleges.length < 10) {
-        setHasMore(false);
-      } else {
-        setHasMore(true);
-      }
-      
-      if (pageNumber === 1 || refresh) {
-        setColleges(data.colleges || []);
-      } else {
-        if (data.colleges.length > 0) {
-          setColleges(prev => [...prev, ...data.colleges]);
-        }
-      }
-
-      setLastDocId(data.nextPageId);
-      
-      
-      
- 
-      
-      setLoading(false);
-      setRefreshing(false);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch colleges');
+      setDisplayedColleges(paginatedColleges);
+      setHasMore(colleges.length > endIndex);
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [colleges, page]);
 
-  const handleSearch = async (pageNumber: number = 1, applyingFilters:boolean = false) => {
+  // Filter cities based on search query
+  useEffect(() => {
+    if (citySearchQuery) {
+      const filtered = cities.filter(
+        city => city.toLowerCase().includes(citySearchQuery.toLowerCase())
+      );
+      setFilteredCities(filtered);
+    } else {
+      setFilteredCities(cities);
+    }
+  }, [citySearchQuery]);
+
+  const handleSearch = useCallback((pageNumber: number = 1, applyingFilters: boolean = false) => {
+    setLoading(true);
+    
     if (!applyingFilters && !searchQuery.trim()) {
       setIsSearchMode(false);
       setPage(1);
-      fetchColleges(1, true);
+      setDisplayedColleges(colleges.slice(0, 10));
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
+    
     try {
-      // Include filters in search query
-      let queryParams = `instituteName=${encodeURIComponent(searchQuery)}&page=${pageNumber}&limit=5`;
+      // Use context searchColleges function
+      let results = searchColleges(searchQuery);
       
-      if (filters.city) {
-        queryParams += `&city=${encodeURIComponent(filters.city.toLowerCase())}`;
+      // Apply filters if present
+      if (filters.city || filters.status) {
+        const filterOptions: { city?: string; status?: string } = {};
+        if (filters.city) filterOptions.city = filters.city;
+        if (filters.status) filterOptions.status = filters.status;
+        
+        results = filterColleges(filterOptions).filter(college => 
+          college.instituteName.toLowerCase().includes(searchQuery.toLowerCase())
+        );
       }
-      if(filters.status){
-        queryParams += `&status=${encodeURIComponent(filters.status)}`;
-      }      
-      console.log("Query Params: ",queryParams);
       
-      const response = await fetch(`${COLLEGE_API}/colleges/search?${queryParams}`);
-      const data = await response.json();
-      console.log("Search Results: ",data);
-      
-      
-      if (data.colleges.length < 5) {
-        setHasMore(false);
-      } else {
-        setHasMore(true);
-      }
-
-      if (pageNumber === 1) {
-        setColleges(data.colleges || []);
-      } else {
-        if (data.colleges.length > 0) {
-          setColleges(prev => [...prev, ...data.colleges]);
-        }
-      }
-
+      setDisplayedColleges(results.slice(0, pageNumber * 5));
+      setHasMore(results.length > pageNumber * 5);
       setIsSearchMode(true);
       setLoading(false);
     } catch (err) {
@@ -142,19 +153,26 @@ const CollegeList = ({ navigation }: any) => {
       setError('Failed to search colleges');
       setLoading(false);
     }
-  };
+  }, [searchQuery, filters, colleges, searchColleges, filterColleges]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setPage(1);
     setLastDocId(null);
-    if (true) {
-      handleSearch(1);
+    
+    try {
+      await refreshColleges();
+      if (isSearchMode) {
+        handleSearch(1);
+      }
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+      setError('Failed to refresh colleges');
     }
-  }, [isSearchMode]);
+  }, [isSearchMode, refreshColleges, handleSearch]);
 
   useEffect(() => {
-    fetchColleges(1);
+    // Initial data fetch handled by context
   }, []);
 
   useEffect(() => {
@@ -166,27 +184,52 @@ const CollegeList = ({ navigation }: any) => {
     setActiveFiltersCount(count);
   }, [filters]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     setFilterModalVisible(false);
     setPage(1);
     setLastDocId(null);
-    handleSearch(1, true);
-  };
+    
+    try {
+      const filterOptions: { city?: string; status?: string } = {};
+      if (filters.city) filterOptions.city = filters.city;
+      if (filters.status) filterOptions.status = filters.status;
+      
+      let results = filterColleges(filterOptions);
+      
+      // Apply search query if in search mode
+      if (isSearchMode && searchQuery) {
+        results = results.filter(college => 
+          college.instituteName.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      setDisplayedColleges(results.slice(0, 10));
+      setHasMore(results.length > 10);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to apply filters');
+      setLoading(false);
+    }
+  }, [filters, filterColleges, isSearchMode, searchQuery]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({ city: '', branch: '', status: '' });
-  };
+  }, []);
+
+  const selectCity = useCallback((city: string) => {
+    setCityModalVisible(false);
+    setFilters(prev => ({
+      ...prev,
+      city: prev.city === city ? '' : city
+    }));
+  }, []);
 
   const loadMore = () => {
     if (!loading && hasMore) {
       console.log("Loading more colleges...");
       const nextPage = page + 1;
       setPage(nextPage);
-      if (isSearchMode) {
-        handleSearch(nextPage, true);
-      }else{
-        fetchColleges(nextPage);
-      }
     }
   };
 
@@ -212,6 +255,27 @@ const CollegeList = ({ navigation }: any) => {
     );
   };
 
+  // Render city item for FlatList
+  const renderCityItem = useCallback(({ item }: { item: string }) => (
+    <TouchableOpacity 
+      style={[
+        styles.cityItem,
+        filters.city === item && styles.cityItemSelected
+      ]}
+      onPress={() => selectCity(item)}
+    >
+      <Text style={[
+        styles.cityItemText,
+        filters.city === item && styles.cityItemTextSelected
+      ]}>
+        {item}
+      </Text>
+      {filters.city === item && (
+        <Icon name="check" size={18} color="#fff" />
+      )}
+    </TouchableOpacity>
+  ), [filters.city, selectCity]);
+
   if (loading && page === 1 && !refreshing) {
     return (
       <View style={styles.centered}>
@@ -226,10 +290,15 @@ const CollegeList = ({ navigation }: any) => {
         <Text style={styles.error}>{error}</Text>
         <TouchableOpacity 
           style={styles.retryButton} 
-          onPress={() => {
+          onPress={async () => {
             setError(null);
             setLoading(true);
-            fetchColleges(1, true);
+            try {
+              await refreshColleges();
+              setPage(1);
+            } catch (err) {
+              setError('Failed to fetch colleges');
+            }
           }}
         >
           <Text style={styles.retryText}>Retry</Text>
@@ -254,7 +323,7 @@ const CollegeList = ({ navigation }: any) => {
                 if (text.length === 0) {
                   setIsSearchMode(false);
                   setPage(1);
-                  fetchColleges(1, true);
+                  setDisplayedColleges(colleges.slice(0, 10));
                 }
               }}
             />
@@ -285,7 +354,7 @@ const CollegeList = ({ navigation }: any) => {
         </View>
         
         <FlatList
-          data={colleges}
+          data={displayedColleges}
           renderItem={({ item }) => (
             <MemoizedCollegeCard
               college={item}
@@ -305,7 +374,7 @@ const CollegeList = ({ navigation }: any) => {
           ListEmptyComponent={renderEmptyList}
           contentContainerStyle={[
             styles.list,
-            colleges.length === 0 && styles.emptyList
+            displayedColleges.length === 0 && styles.emptyList
           ]}
           numColumns={width > 600 ? 2 : 1}
           key={width > 600 ? 'two-column' : 'one-column'}
@@ -313,7 +382,7 @@ const CollegeList = ({ navigation }: any) => {
           onRefresh={onRefresh}
         />
 
-        {/* Filters Modal */}
+        {/* Main Filters Modal */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -333,71 +402,44 @@ const CollegeList = ({ navigation }: any) => {
                 {/* City Filter */}
                 <View style={styles.filterSection}>
                   <Text style={styles.filterLabel}>City</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.filterChipsContainer}
-                  >
-                    {availableCities.map((city) => (
-                      <TouchableOpacity 
-                        key={city}
-                        style={[
-                          styles.filterChip,
-                          filters.city === city && styles.filterChipSelected
-                        ]}
-                        onPress={() => setFilters(prev => ({
-                          ...prev,
-                          city: prev.city === city ? '' : city
-                        }))}
-                      >
-                        <Text style={[
-                          styles.filterChipText,
-                          filters.city === city && styles.filterChipTextSelected
-                        ]}>
-                          {city}
-                        </Text>
-                        {filters.city === city && (
-                          <Icon name="check" size={16} color="#fff" style={styles.chipIcon} />
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <View style={styles.cityFilterContainer}>
+                    {filters.city ? (
+                      <View style={styles.selectedCityContainer}>
+                        <Text style={styles.selectedCityText}>{filters.city}</Text>
+                        <TouchableOpacity onPress={() => setFilters(prev => ({ ...prev, city: '' }))}>
+                          <Icon name="close-circle" size={18} color="#666" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+                    <TouchableOpacity 
+                      style={styles.citySelector}
+                      onPress={() => setCityModalVisible(true)}
+                    >
+                      <Text style={styles.citySelectorText}>
+                        {filters.city ? 'Change City' : 'Select City'}
+                      </Text>
+                      <Icon name="chevron-right" size={20} color="#371981" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 
                 {/* Status Filter */}
                 <View style={styles.filterSection}>
                   <Text style={styles.filterLabel}>Status</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.filterChipsContainer}
-                  >
+                  <View style={styles.statusChipsContainer}>
                     {['All', 'Government', 'Un-Aided', 'Government-Aided', 'University Department'].map((status) => (
-                      <TouchableOpacity 
+                      <FilterChip
                         key={status}
-                        style={[
-                          styles.filterChip,
-                          filters.status === status && styles.filterChipSelected
-                        ]}
+                        label={status}
+                        selected={filters.status === status}
                         onPress={() => setFilters(prev => ({
                           ...prev,
                           status: prev.status === status ? '' : status
                         }))}
-                      >
-                        <Text style={[
-                          styles.filterChipText,
-                          filters.status === status && styles.filterChipTextSelected
-                        ]}>
-                          {status}
-                        </Text>
-                        {filters.status === status && (
-                          <Icon name="check" size={16} color="#fff" style={styles.chipIcon} />
-                        )}
-                      </TouchableOpacity>
+                      />
                     ))}
-                  </ScrollView>
+                  </View>
                 </View>
-                
               </ScrollView>
               
               <View style={styles.modalFooter}>
@@ -414,6 +456,54 @@ const CollegeList = ({ navigation }: any) => {
                   <Text style={styles.applyButtonText}>Apply</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* City Selection Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={cityModalVisible}
+          onRequestClose={() => setCityModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select City</Text>
+                <TouchableOpacity onPress={() => setCityModalVisible(false)}>
+                  <Icon name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.citySearchContainer}>
+                <Icon name="magnify" size={20} color="#666" style={styles.citySearchIcon} />
+                <TextInput
+                  style={styles.citySearchInput}
+                  placeholder="Search cities..."
+                  value={citySearchQuery}
+                  onChangeText={setCitySearchQuery}
+                  autoFocus={true}
+                  clearButtonMode="while-editing"
+                />
+              </View>
+              
+              <FlatList
+                data={filteredCities}
+                renderItem={renderCityItem}
+                keyExtractor={item => item}
+                style={styles.cityList}
+                initialNumToRender={15}
+                windowSize={5}
+                maxToRenderPerBatch={10}
+                removeClippedSubviews={true}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={() => (
+                  <View style={styles.emptyCityList}>
+                    <Text style={styles.emptyCityText}>No cities found</Text>
+                  </View>
+                )}
+              />
             </View>
           </View>
         </Modal>
@@ -493,7 +583,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
   list: {
-    padding: 8,
+    padding: 0,
   },
   emptyList: {
     flex: 1,
@@ -580,10 +670,41 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
-  filterChipsContainer: {
+  cityFilterContainer: {
+    marginBottom: 8,
+  },
+  selectedCityContainer: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
-    paddingVertical: 5,
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  selectedCityText: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+  },
+  citySelector: {
+    flexDirection: 'row',
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  citySelectorText: {
+    fontSize: 15,
+    color: '#371981',
+    fontWeight: '500',
+  },
+  statusChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   filterChip: {
     flexDirection: 'row',
@@ -643,5 +764,52 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  // City selection modal specific styles
+  citySearchContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+  },
+  citySearchIcon: {
+    marginRight: 8,
+  },
+  citySearchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 8,
+  },
+  cityList: {
+    maxHeight: '70%',
+  },
+  cityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  cityItemSelected: {
+    backgroundColor: '#371981',
+  },
+  cityItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  cityItemTextSelected: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+  emptyCityList: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyCityText: {
+    fontSize: 16,
+    color: '#888',
   },
 });
