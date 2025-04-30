@@ -1,8 +1,11 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Dimensions, Animated, Platform } from 'react-native'
+import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Dimensions, Animated, Platform, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect, useRef } from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import CustomText from '../General/CustomText'
+import config from '../../configs/API'
+const { USER_API } = config
+
 
 // Get screen dimensions for responsive layout
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -27,11 +30,31 @@ const getResponsiveCardWidth = () => {
 const CARD_WIDTH = getResponsiveCardWidth();
 const CARD_MARGIN = 8; // Reduced margin for smaller screens
 
+// Define interfaces for API response
+interface Timestamp {
+  _seconds: number;
+  _nanoseconds: number;
+}
+
+interface Plan {
+  title: string;
+  price: number;
+  isLocked: boolean;
+  opensAt?: Timestamp;
+  benefits: string[];
+}
+
+interface PlansResponse {
+  plans: Plan[];
+}
+
 interface PlanCardProps {
   title: string;
   price: string;
   features: string[];
   isPremium: boolean;
+  isLocked?: boolean;
+  opensAt?: Timestamp;
   onGetStarted: (planDetails: any) => void;
 }
 
@@ -42,7 +65,7 @@ interface CounsellingCardsProps {
   features: string[];
 }
 
-const PlanCard = ({ title, price, features, isPremium, onGetStarted }: PlanCardProps) => {
+const PlanCard = ({ title, price, features, isPremium, isLocked = false, opensAt, onGetStarted }: PlanCardProps) => {
   // Determine how many features to show based on screen size
   const getVisibleFeatures = () => {
     if (SCREEN_HEIGHT < 600) return 2; // Very small screens
@@ -52,10 +75,42 @@ const PlanCard = ({ title, price, features, isPremium, onGetStarted }: PlanCardP
   
   const visibleFeatures = getVisibleFeatures();
   
+  // Format the timestamp to a readable date if available
+  const formatOpeningDate = () => {
+    if (!opensAt) return '';
+    
+    const date = new Date(opensAt._seconds * 1000);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+  
   return (
-    <View style={[styles.card, isPremium && styles.premiumCard]}>
-      <CustomText style={styles.title} numberOfLines={1} ellipsizeMode="tail">{title}</CustomText>
+    <View style={[
+      styles.card, 
+      isPremium && styles.premiumCard,
+      isLocked && styles.lockedCard
+    ]}>
+      <View style={styles.titleContainer}>
+        <CustomText style={styles.title} numberOfLines={1} ellipsizeMode="tail">{title}</CustomText>
+        {isLocked && (
+          <Icon name="lock" size={18} color="#FF9800" style={styles.lockIcon} />
+        )}
+      </View>
+      
       <CustomText style={styles.price}>₹{price}</CustomText>
+      
+      {isLocked && opensAt && (
+        <View style={styles.lockedInfoContainer}>
+          <Icon name="clock-outline" size={14} color="#FF9800" />
+          <CustomText style={styles.opensAtText}>
+            Available from {formatOpeningDate()}
+          </CustomText>
+        </View>
+      )}
+      
       <View style={styles.featuresContainer}>
         {features.slice(0, visibleFeatures).map((feature, index) => (
           <View key={index} style={styles.featureRow}>
@@ -66,7 +121,7 @@ const PlanCard = ({ title, price, features, isPremium, onGetStarted }: PlanCardP
               style={styles.featureIcon}
             />
             <CustomText 
-              style={styles.featureText} 
+              style={[styles.featureText, isLocked && styles.lockedText]} 
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -75,14 +130,25 @@ const PlanCard = ({ title, price, features, isPremium, onGetStarted }: PlanCardP
           </View>
         ))}
       </View>
+      
       <TouchableOpacity 
-        style={[styles.button, isPremium ? styles.premiumButton : styles.standardButton]}
-        onPress={() => onGetStarted({ price, features, isPremium, title })}
+        style={[
+          styles.button, 
+          isPremium ? styles.premiumButton : styles.standardButton,
+          isLocked && styles.lockedButton
+        ]}
+        onPress={() => !isLocked && onGetStarted({ price, features, isPremium, title })}
+        disabled={isLocked}
         accessible={true}
-        accessibilityLabel={`Get Started with ${title} plan for ₹${price}`}
+        accessibilityLabel={isLocked ? 
+          `${title} plan will be available from ${formatOpeningDate()}` : 
+          `Get Started with ${title} plan for ₹${price}`
+        }
         accessibilityRole="button"
       >
-        <CustomText style={styles.buttonText}>Get Started</CustomText>
+        <CustomText style={[styles.buttonText, isLocked && styles.lockedButtonText]}>
+          {isLocked ? "Coming Soon" : "Get Started"}
+        </CustomText>
       </TouchableOpacity>
     </View>
   );
@@ -92,6 +158,9 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
   const [showAll, setShowAll] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Get responsive modal height based on screen size
   const getModalHeight = () => {
@@ -104,6 +173,35 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
     return SCREEN_HEIGHT * 0.6; // Default size
   };
 
+  // Fetch plans from API
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setLoading(true);
+        //use fetch from your api endpoint to get the plans
+        const response = await fetch(`${USER_API}/get-premium-plans`); // Replace with your API endpoint
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data: PlansResponse = await response.json();
+        console.log('Fetched plans:', data.plans);
+        
+        setPlans(data.plans);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching plans:', err);
+        setError('Failed to load plans. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (visible) {
+      fetchPlans();
+    }
+  }, [visible]);
+
+  // Animation effect
   useEffect(() => {
     if (visible) {
       Animated.parallel([
@@ -133,6 +231,14 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
       ]).start();
     }
   }, [visible]);
+
+  // Get all unique benefits from plans
+  const getAllBenefits = () => {
+    if (plans.length > 0) {
+      return [...new Set(plans.flatMap(plan => plan.benefits))];
+    }
+    return features;
+  };
 
   return (
     <Modal
@@ -179,31 +285,60 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
           </View>
 
           <View style={styles.scrollViewContainer}>
-            <ScrollView 
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.cardsContainer}
-              snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
-              decelerationRate="fast"
-              pagingEnabled
-              accessible={true}
-              accessibilityLabel="Plan options"
-            >
-              <PlanCard 
-                title="Premium" 
-                price="499" 
-                features={features} 
-                isPremium={false}
-                onGetStarted={onUpgrade}
-              />
-              <PlanCard 
-                title="Counselling" 
-                price="6,999" 
-                features={features} 
-                isPremium={true}
-                onGetStarted={onUpgrade}
-              />
-            </ScrollView>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#371981" />
+                <CustomText style={styles.loadingText}>Loading plans...</CustomText>
+              </View>
+            ) : error ? (
+              <View style={styles.errorContainer}>
+                <Icon name="alert-circle" size={40} color="#d9534f" />
+                <CustomText style={styles.errorText}>{error}</CustomText>
+              </View>
+            ) : (
+              <ScrollView 
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardsContainer}
+                snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
+                decelerationRate="fast"
+                pagingEnabled
+                accessible={true}
+                accessibilityLabel="Plan options"
+              >
+                {plans.length > 0 ? (
+                  plans.map((plan, index) => (
+                    <PlanCard 
+                      key={index}
+                      title={plan.title} 
+                      price={plan.price.toLocaleString()} 
+                      features={plan.benefits} 
+                      isPremium={plan.title.toLowerCase() === "counselling"}
+                      isLocked={plan.isLocked}
+                      opensAt={plan.opensAt}
+                      onGetStarted={onUpgrade}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <PlanCard 
+                      title="Premium" 
+                      price="499" 
+                      features={features} 
+                      isPremium={false}
+                      onGetStarted={onUpgrade}
+                    />
+                    <PlanCard 
+                      title="Counselling" 
+                      price="6,999" 
+                      features={features} 
+                      isPremium={true}
+                      onGetStarted={onUpgrade}
+                    />
+                  </>
+                )}
+              </ScrollView>
+            )}
           </View>
 
           <TouchableOpacity 
@@ -231,7 +366,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
               accessible={true}
               accessibilityLabel="All plan features"
             >
-              {features.map((feature, index) => (
+              {getAllBenefits().map((feature, index) => (
                 <View key={index} style={styles.allFeatureItem}>
                   <Icon 
                     name="check-circle" 
@@ -413,5 +548,71 @@ const styles = StyleSheet.create({
   skipButtonText: {
     color: '#666',
     fontSize: SCREEN_WIDTH < 360 ? 13 : 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#371981',
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  errorText: {
+    marginTop: 10,
+    color: '#d9534f',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  
+  lockIcon: {
+    marginLeft: 8,
+  },
+  
+  lockedCard: {
+    opacity: 0.85,
+    borderColor: '#FF9800',
+    borderStyle: 'dashed',
+  },
+  
+  lockedText: {
+    color: '#777',
+  },
+  
+  lockedButton: {
+    backgroundColor: '#B0BEC5',
+  },
+  
+  lockedButtonText: {
+    color: '#424242',
+  },
+  
+  lockedInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    padding: 6,
+    borderRadius: 4,
+    marginBottom: 10,
+  },
+  
+  opensAtText: {
+    fontSize: 12,
+    color: '#FF4500',
+    marginLeft: 4,
+    fontWeight: '500',
   },
 });

@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OnboardingScreen } from './pages/Onboarding';
 import { LoginScreen } from './pages/LoginPage';
 import TabNavigator from './navigation/TabNavigator';
-import { getUserData, storeUserPlanData } from './utils/storage';
+import { getUserData, storeUserData, storeUserPlanData } from './utils/storage';
 import { View, Text, StyleSheet } from 'react-native';
 import { SplashScreen } from './pages/Splash';
 import Notification from './pages/Notification';
@@ -23,6 +23,7 @@ import AllUpdates from './pages/AllUpdates';
 import EventDetails from './pages/EventDetails';
 import Favourites from './pages/Favourites';
 import AllEvents from './pages/AllEvents';
+import ListDetailsScreen from './pages/Lists/ListDetailsScreen';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -52,6 +53,7 @@ type RootStackParamList = {
   EventDetails: {eventId:string}
   Favourites: undefined;
   AllEvents: undefined;
+  ListDetails: { list: any };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -199,6 +201,9 @@ const App = () => {
       if (response?.data) {
         setIsPremium(!!response.data.isPremium);
         storeUserPlanData(response.data);
+        storeUserData({
+          ...userData,
+          isPremium: response.data.isPremium        })
       } else {
         setIsPremium(false);
       }
@@ -319,6 +324,7 @@ const App = () => {
                 <Stack.Screen name="AllEvents" component={AllEvents} />
                 <Stack.Screen name="EventDetails" component={EventDetails} />
                 <Stack.Screen name="Favourites" component={Favourites} />
+                <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
             </Stack.Navigator>
             {isLoggedIn && !isPremium && <PremiumButton />}
           </View>

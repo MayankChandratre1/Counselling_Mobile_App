@@ -32,6 +32,7 @@ const PremiumDashboard = () => {
       icon: 'crown',
       description: `You are on ${planTitle} Plan`,
       color: '#613EEA',
+      route: 'MyPlan',
     },
     {
       title: 'Track Progress',

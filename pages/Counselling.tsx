@@ -5,7 +5,7 @@ import { getUserData, getUserPlanData } from '../utils/storage';
 import StackNavigationPremium from '../components/Counselling/StackNavigationPremium';
 
 const Counselling = ({ route, navigation }: any) => {
-  const [currentPlan, setCurrentPlan] = useState('')
+  const [currentPlan, setCurrentPlan] = useState('Free')
   const [isPremium, setIsPremium] = useState(false)
 
   useEffect(() => {
@@ -14,8 +14,9 @@ const Counselling = ({ route, navigation }: any) => {
       console.log("Plan found", plan);
       
       if (plan) {
-        const userData = await getUserData()
-        setCurrentPlan(plan.plan?.planTitle ?? "Free")
+        if(plan.isPremium) {
+          setCurrentPlan(plan.plan?.planTitle ?? "Premium")
+        }
         setIsPremium(plan.isPremium)
       }
     }

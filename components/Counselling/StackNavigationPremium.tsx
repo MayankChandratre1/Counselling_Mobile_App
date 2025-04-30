@@ -5,6 +5,7 @@ import CounsellingForm from './CounsellingForm';
 import MyLists from '../../pages/Lists/MyLists';
 import PremiumDashboard from './PremiumDashboard';
 import FreeDashboard from './FreeDashboard';
+import MyPlan from './MyPlan';
 
 const RecommendedColleges = () => <View style={{flex:1, justifyContent:'center', alignItems:'center'}}><Text>Recommended Colleges</Text></View>;
 const CutoffCalculator = () => <View style={{flex:1, justifyContent:'center', alignItems:'center'}}><Text>Cutoff Calculator</Text></View>;
@@ -35,8 +36,8 @@ const StackNavigationPremium = ({ planType }: PremiumStackProps) => {
       <Stack.Screen name="RecommendedColleges" component={RecommendedColleges} />
       <Stack.Screen name="CutoffCalculator" component={CutoffCalculator} />
       <Stack.Screen name="CounsellingForm" component={CounsellingForm}
-      
       />
+      <Stack.Screen name="MyPlan" component={MyPlan} />
 
       {/* Conditional Counselling Screens */}
       {planType === 'Counselling' && (

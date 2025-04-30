@@ -69,6 +69,7 @@ const FreeDashboard = ({ navigation }: any) => {
       description: `You are on ${currentPlan} Plan`,
       color: '#613EEA',
       locked: false,
+      route:'MyPlan',
     },
     {
       title: "Track Progress",
