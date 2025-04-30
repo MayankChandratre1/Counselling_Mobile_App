@@ -5,23 +5,16 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Linking, 
-  Dimensions 
+  Dimensions,
+  ActivityIndicator
 } from 'react-native'
 import React from 'react'
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 import CustomText from '../General/CustomText'
+import { Update } from '../../contexts/EventsContext'
 
 const { width } = Dimensions.get('window');
-
-interface Update {
-  id: string;
-  title: string;
-  subtitle: string;
-  type: 'video' | 'news' | 'event';
-  date: string;
-  link?: string;
-}
 
 interface UpdateCardProps {
   update: Update;
@@ -94,44 +87,27 @@ const UpdateCard: React.FC<UpdateCardProps> = ({ update, onPress }) => {
 };
 
 interface UpdateSliderProps {
-  navigation?: any; // Optional navigation prop
+  updates: Update[];
+  navigation?: any;
+  loading?: boolean;
 }
 
-const UpdateSlider: React.FC<UpdateSliderProps> = ({ navigation }) => {
-  // Sample data - replace with your actual data source
-  const updates: Update[] = [
-    {
-      id: '1',
-      title: 'New Video Released!',
-      subtitle: 'Watch latest counselling tips',
-      type: 'video',
-      date: 'Apr 26',
-      link: 'https://youtube.com/example1'
-    },
-    {
-      id: '2',
-      title: 'JEE Advanced Applications',
-      subtitle: 'Last date: 30th June',
-      type: 'news',
-      date: 'Apr 25',
-    },
-    {
-      id: '3',
-      title: 'Live Session Tomorrow',
-      subtitle: 'Topic: Engineering Pathways',
-      type: 'event',
-      date: 'Apr 27',
-      link: 'https://meet.google.com/example'
-    },
-    {
-      id: '4',
-      title: 'BITSAT Registration',
-      subtitle: 'Last date extended to May 15',
-      type: 'news',
-      date: 'Apr 24',
-      link: 'https://bitsadmission.com'
-    },
-  ];
+const UpdateSlider: React.FC<UpdateSliderProps> = ({ updates = [], navigation, loading = false }) => {
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#371981" />
+      </View>
+    );
+  }
+
+  if (updates.length === 0) {
+    return (
+      <View style={[styles.container, styles.emptyContainer]}>
+        <CustomText style={styles.emptyText}>No updates available</CustomText>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -251,5 +227,22 @@ const styles = StyleSheet.create({
     color: '#613EEA',
     fontSize: 14,
     fontWeight: '600',
-  }
+  },
+  loadingContainer: {
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 200,
+  },
+  emptyContainer: {
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 150,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });

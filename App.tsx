@@ -18,6 +18,11 @@ import config from './configs/API';
 import { LogLevel, OneSignal } from 'react-native-onesignal';
 import CustomText from './components/General/CustomText';
 import { CollegeProvider } from './contexts/CollegeContext';
+import { EventsProvider } from './contexts/EventsContext';
+import AllUpdates from './pages/AllUpdates';
+import EventDetails from './pages/EventDetails';
+import Favourites from './pages/Favourites';
+import AllEvents from './pages/AllEvents';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -43,6 +48,10 @@ type RootStackParamList = {
     };
   };
   MyLists: undefined;
+  AllUpdates: undefined;
+  EventDetails: {eventId:string}
+  Favourites: undefined;
+  AllEvents: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -272,41 +281,48 @@ const App = () => {
   return (
     <NavigationContainer>
       <CollegeProvider>
-      <View style={{ flex: 1 }}>
-        <Stack.Navigator 
-          screenOptions={{ 
-            headerShown: false,
-            animation: 'none'
-          }}
-        >
-          {!isLoggedIn ? (
-            <>
-              <Stack.Screen 
-                name="Onboarding" 
-                component={OnboardingScreen} 
-                initialParams={{ step: 1 }}
-              />
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Home" component={TabNavigator} />
-              <Stack.Screen name="Notification" component={Notification} />
-              <Stack.Screen name="PlanDetails" component={PlanDetails} />
-              <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
-              <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="Home" component={TabNavigator} />
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Notification" component={Notification} />
-              <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
-              <Stack.Screen name="PlanDetails" component={PlanDetails} />
-              <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
-              <Stack.Screen name="MyLists" component={MyLists} />
-            </>
-          )}
-        </Stack.Navigator>
-        {isLoggedIn && !isPremium && <PremiumButton />}
-      </View>
+        <EventsProvider>
+          <View style={{ flex: 1 }}>
+            <Stack.Navigator 
+              screenOptions={{ 
+                headerShown: false,
+                animation: 'none'
+              }}
+            >
+              {!isLoggedIn ? (
+                <>
+                  <Stack.Screen 
+                    name="Onboarding" 
+                    component={OnboardingScreen} 
+                    initialParams={{ step: 1 }}
+                  />
+                  <Stack.Screen name="Login" component={LoginScreen} />
+                  <Stack.Screen name="Home" component={TabNavigator} />
+                  <Stack.Screen name="Notification" component={Notification} />
+                  <Stack.Screen name="PlanDetails" component={PlanDetails} />
+                  <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
+                  <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
+                </>
+              ) : (
+                <>
+                  <Stack.Screen name="Home" component={TabNavigator} />
+                  <Stack.Screen name="Login" component={LoginScreen} />
+                  <Stack.Screen name="Notification" component={Notification} />
+                  <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
+                  <Stack.Screen name="PlanDetails" component={PlanDetails} />
+                  <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
+                  <Stack.Screen name="MyLists" component={MyLists} />
+                 
+                </>
+              )}
+                <Stack.Screen name="AllUpdates" component={AllUpdates} />
+                <Stack.Screen name="AllEvents" component={AllEvents} />
+                <Stack.Screen name="EventDetails" component={EventDetails} />
+                <Stack.Screen name="Favourites" component={Favourites} />
+            </Stack.Navigator>
+            {isLoggedIn && !isPremium && <PremiumButton />}
+          </View>
+        </EventsProvider>
       </CollegeProvider>
     </NavigationContainer>
   );

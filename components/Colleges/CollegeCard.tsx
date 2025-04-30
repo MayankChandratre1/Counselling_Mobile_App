@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -6,10 +6,11 @@ import {
   Image, 
   TouchableOpacity, 
   Dimensions, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Platform 
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserFavorites, addUserFavoirites, removeUserFavoirites } from "../../utils/storage";
 
 interface CollegeProps {
   college: {
@@ -17,151 +18,223 @@ interface CollegeProps {
     instituteName: string;
     city: string;
     image?: string;
-    additionalMetadata?: any;
+    additionalMetadata?: {
+      status?: string;
+      rating?: number;
+      programs?: number;
+    };
   };
   onPress: (college: any) => void;
+  hideFav?: boolean;
 }
 
-const FAVORITES_STORAGE_KEY = 'favorite_colleges';
-
-const CollegeCard = ({ college, onPress }: CollegeProps) => {
+const CollegeCard = ({ college, onPress, hideFav }: CollegeProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-  const windowWidth = Dimensions.get('window').width;
+  const [imageError, setImageError] = useState(false);
   
-  // Adjust card width based on screen size
-  const cardWidth = windowWidth > 600 ? 
-    (windowWidth - 48) / 2 : // Tablet - 2 columns with margin
-    windowWidth - 32; // Phone - 1 column with margin
+  // Responsive sizing
+  const { width: windowWidth } = Dimensions.get('window');
+  const isTablet = windowWidth > 768;
+  const isLargePhone = windowWidth > 414 && windowWidth <= 768;
   
-  // Load favorite status from storage on component mount
+  // Dynamic card width calculation
+  const getCardWidth = () => {
+    if (isTablet) {
+      return (windowWidth - 64) / 3; // 3 columns on tablets
+    } else if (isLargePhone) {
+      return (windowWidth - 48) / 2; // 2 columns on large phones
+    }
+    return windowWidth - 32; // 1 column on small phones
+  };
+  
+  const cardWidth = getCardWidth();
+  
+  // Load favorites
   useEffect(() => {
-    const loadFavoriteStatus = async () => {
-      try {
-        const favoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-        if (favoritesJson) {
-          const favorites = JSON.parse(favoritesJson);
-          setIsFavorite(favorites.includes(college.id));
-        }
-      } catch (error) {
-        console.error('Error loading favorites:', error);
-      }
-    };
-    
     loadFavoriteStatus();
   }, [college.id]);
   
-  const toggleFavorite = async () => {
+  const loadFavoriteStatus = async () => {
     try {
-      const newFavoriteStatus = !isFavorite;
-      setIsFavorite(newFavoriteStatus);
-      
-      // Get current favorites
-      const favoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      let favorites = favoritesJson ? JSON.parse(favoritesJson) : [];
-      
-      // Update favorites list
-      if (newFavoriteStatus) {
-        favorites = [...favorites, college.id];
-      } else {
-        favorites = favorites.filter((id: string) => id !== college.id);
+      const favorites = await getUserFavorites();
+      if (favorites) {
+        setIsFavorite(favorites.includes(college.id));
       }
-      
-      // Save updated favorites
-      await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+  
+  const toggleFavorite = useCallback(async () => {
+    try {
+      if (isFavorite) {
+        await removeUserFavoirites(college.id);
+      } else {
+        await addUserFavoirites(college.id);
+      }
+      setIsFavorite(!isFavorite);
     } catch (error) {
       console.error('Error updating favorites:', error);
       // Revert UI state if save failed
-      setIsFavorite(!isFavorite);
+      setIsFavorite(isFavorite);
     }
+  }, [isFavorite, college.id]);
+
+  // Render stars for ratings if available
+  const renderRatingStars = () => {
+    if (!college.additionalMetadata?.rating) return null;
+    
+    const rating = college.additionalMetadata.rating;
+    const stars = [];
+    
+    for (let i = 1; i <= 5; i++) {
+      const iconName = i <= rating ? "star" : "star-o";
+      stars.push(
+        <FontAwesome 
+          key={i} 
+          name={iconName} 
+          size={12} 
+          color={i <= rating ? "#FFD700" : "#CCCCCC"} 
+          style={{ marginRight: i < 5 ? 2 : 0 }}
+        />
+      );
+    }
+    
+    return (
+      <View style={styles.ratingContainer}>
+        {stars}
+      </View>
+    );
   };
 
   return (
-    <TouchableOpacity 
-      style={[styles.card, { width: cardWidth }]} 
-      onPress={() => onPress(college)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.imageContainer}>
-        {imageLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#613EEA" />
-          </View>
-        )}
-        <Image
-          source={
-            college.image
-              ? { uri: college.image }
-              : require('../../assets/CollegePlaceholder.png')
-          }
-          style={styles.image}
-          resizeMode="cover"
-          onLoadStart={() => setImageLoading(true)}
-          onLoadEnd={() => setImageLoading(false)}
-        />
-        <View style={styles.overlay}>
-          {college.city && (
-            <View style={styles.locationPill}>
-              <FontAwesome name="map-marker" size={12} color="#fff" style={styles.locationIcon} />
-              <Text style={styles.locationText}>
-                {college.city.charAt(0).toUpperCase() + college.city.slice(1)}
-              </Text>
+    <View style={[styles.cardContainer, { width: cardWidth }]}>
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => onPress(college)}
+        activeOpacity={0.9}
+        accessible={true}
+        accessibilityLabel={`College card for ${college.instituteName}`}
+        accessibilityRole="button"
+        accessibilityHint="Opens detailed information about this college"
+      >
+        <View style={styles.imageContainer}>
+          {imageLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#613EEA" />
             </View>
           )}
-        </View>
-        
-        <TouchableOpacity
-          style={styles.favoriteButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleFavorite();
-          }}
-          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-        >
-          <FontAwesome
-            name={isFavorite ? "heart" : "heart-o"}
-            size={22}
-            color={isFavorite ? "#FF3B30" : "#ff3b3066"}
+          
+          <Image
+            source={
+              college.image && !imageError
+                ? { uri: college.image }
+                : require('../../assets/CollegePlaceholder.png')
+            }
+            style={styles.image}
+            resizeMode="cover"
+            onLoadStart={() => setImageLoading(true)}
+            onLoadEnd={() => setImageLoading(false)}
+            onError={() => setImageError(true)}
           />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.contentContainer}>
-        {college.additionalMetadata?.status && (
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusText}>
-              {college.additionalMetadata.status}
-            </Text>
+          
+          {/* Darkened overlay for better text visibility */}
+          <View style={styles.gradientOverlay} />
+          
+          <View style={styles.overlay}>
+            {college.city && (
+              <View style={styles.locationPill}>
+                <FontAwesome name="map-marker" size={12} color="#fff" style={styles.locationIcon} />
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {college.city.charAt(0).toUpperCase() + college.city.slice(1)}
+                </Text>
+              </View>
+            )}
+            
+            {college.additionalMetadata?.programs && (
+              <View style={styles.programsPill}>
+                <FontAwesome name="graduation-cap" size={12} color="#fff" style={styles.programsIcon} />
+                <Text style={styles.programsText}>
+                  {college.additionalMetadata.programs} Programs
+                </Text>
+              </View>
+            )}
           </View>
-        )}
-        
-        <Text style={styles.instituteName} numberOfLines={2}>
-          {college.instituteName}
-        </Text>
-      </View>
-    </TouchableOpacity>
+          
+          {!hideFav && (
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                toggleFavorite();
+              }}
+              hitSlop={{ top: 20, right: 20, bottom: 20, left: 20 }}
+              accessible={true}
+              accessibilityLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              accessibilityRole="button"
+            >
+              <FontAwesome
+                name={isFavorite ? "heart" : "heart-o"}
+                size={22}
+                color={isFavorite ? "#FF3B30" : "rgba(255, 59, 48, 0.7)"}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.contentContainer}>
+          <Text style={styles.instituteName} numberOfLines={2}>
+            {college.instituteName}
+          </Text>
+          
+          <View style={styles.metadataContainer}>
+            {college.additionalMetadata?.status && (
+              <View style={styles.statusPill}>
+                <Text style={styles.statusText}>
+                  {college.additionalMetadata.status}
+                </Text>
+              </View>
+            )}
+            
+            {renderRatingStars()}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 };
 
-export default CollegeCard;
+export default React.memo(CollegeCard);
 
 const styles = StyleSheet.create({
+  cardContainer: {
+    marginHorizontal: 12,
+    marginVertical: 12,
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    marginHorizontal: 16,
-    marginVertical: 12,
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+      web: {
+        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
+      }
+    }),
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: 140,
+    height: 160,  // Slightly taller for better visual appeal
     overflow: 'hidden',
   },
   loadingContainer: {
@@ -179,27 +252,35 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  overlay: {
+  gradientOverlay: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    bottom: 0,
+    height: '70%',
+    backgroundColor: 'rgba(0,0,0,0.0)', // Creates a darkened effect from bottom to top
+  },
+  overlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   favoriteButton: {
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.7)',
     padding: 8,
     borderRadius: 20,
     width: 38,
     height: 38,
     justifyContent: 'center',
     alignItems: 'center',
+    
   },
   contentContainer: {
     padding: 16,
@@ -207,10 +288,11 @@ const styles = StyleSheet.create({
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(97, 62, 234, 0.8)',
+    backgroundColor: 'rgba(97, 62, 234, 0.9)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    maxWidth: '70%',
   },
   locationIcon: {
     marginRight: 4,
@@ -220,8 +302,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  statusContainer: {
-    marginBottom: 8,
+  programsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(50, 50, 50, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  programsIcon: {
+    marginRight: 4,
+  },
+  programsText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  metadataContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  statusPill: {
+    backgroundColor: 'rgba(97, 62, 234, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginRight: 6,
+    marginBottom: 4,
   },
   statusText: {
     color: '#613EEA',
@@ -233,5 +343,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     lineHeight: 22,
+    marginBottom: 4,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
 });

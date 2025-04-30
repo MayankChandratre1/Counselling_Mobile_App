@@ -83,6 +83,44 @@ export const clearUserData = async () => {
   }
 };
 
+export const addUserFavoirites = async (collegeId: string) => {
+  try {
+    const existingData = await AsyncStorage.getItem('favorites');
+    const favorites = existingData ? JSON.parse(existingData) : [];
+
+    if (!favorites.includes(collegeId)) {
+      favorites.push(collegeId);
+      await AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+    }
+  } catch (error) {
+    console.error('Error adding favorite:', error);
+  }
+}
+
+export const getUserFavorites = async () => {
+  try {
+    const existingData = await AsyncStorage.getItem('favorites');
+    return existingData ? JSON.parse(existingData) : [];
+  } catch (error) {
+    console.error('Error getting favorites:', error);
+    return null;
+  }
+}
+
+export const removeUserFavoirites = async (collegeId: string) => {
+  try {
+    const existingData = await AsyncStorage.getItem('favorites');
+    const favorites = existingData ? JSON.parse(existingData) : [];
+
+    if (favorites.includes(collegeId)) {
+      const updatedFavorites = favorites.filter((id: string) => id !== collegeId);
+      await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+    }
+  } catch (error) {
+    console.error('Error removing favorite:', error);
+  }
+}
+
 export const logout = async (userId:string) => {
   try {
     // Call logout endpoint
@@ -106,3 +144,8 @@ export const logout = async (userId:string) => {
     return false;
   }
 };
+
+
+export const keys = {
+   FAVORITES_STORAGE_KEY: 'favorites'
+}
