@@ -177,7 +177,7 @@ const Landing = () => {
             {videoId ? (
               <YoutubePlayer
                 height={SCREEN_WIDTH * 0.5625}
-                play={false}
+                play={true}
                 videoId={videoId}
                 onError={(e) => {
                   console.error('YouTube Player Error:', e);
@@ -291,11 +291,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f0f0f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   sectionTitle: {
     fontSize: 22,
@@ -315,11 +314,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8ff',
     marginBottom: 15,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E6E1FF',
+  
   },
   featureText: {
     marginLeft: 15,
@@ -335,16 +332,12 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH * 0.85,
     padding: 20,
     borderRadius: 16,
+    borderColor: '#E6E1FF',
     backgroundColor: '#F7F5FF',
     marginRight: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+  
     position: 'relative',
     borderWidth: 1,
-    borderColor: '#E6E1FF',
   },
   testimonialQuote: {
     fontSize: 40,
@@ -395,11 +388,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
     width: '90%',
   },
   ctaButtonText: {

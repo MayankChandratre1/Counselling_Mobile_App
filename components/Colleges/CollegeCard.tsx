@@ -216,20 +216,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-      web: {
-        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
-      }
-    }),
+    borderWidth: 1,
+    borderColor: '#E6E1FF',
   },
   imageContainer: {
     position: 'relative',

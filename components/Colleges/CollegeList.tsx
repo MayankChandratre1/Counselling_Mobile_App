@@ -315,8 +315,8 @@ const CollegeList = ({ navigation }: any) => {
           <View style={styles.searchContainer}>
             <TextInput
               style={[styles.searchInput, {color: '#371981'}]}
-              placeholderTextColor={'#371981'}
-              placeholder="Search colleges..."
+              placeholderTextColor={'#37198166'}
+              placeholder="Search"
               value={searchQuery}
               onChangeText={(text) => {
                 setSearchQuery(text);
@@ -518,22 +518,22 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop:0,
   },
   container: {
     flex: 1,
+
   },
   headerContainer: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eaeaea',
-    paddingBottom: 10,
+    paddingBottom: 2,
   },
   searchContainer: {
     flexDirection: 'row',
     padding: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
     alignItems: 'center',
   },
   searchInput: {

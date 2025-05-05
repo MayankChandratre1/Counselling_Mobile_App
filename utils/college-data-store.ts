@@ -55,6 +55,8 @@ export class CollegeDataManager {
 
   async initialize(): Promise<College[]> {
     // If already initializing, return the existing promise
+    console.log('Initializing college data manager...');
+    
     if (this.isInitializing && this.initPromise) {
       return this.initPromise;
     }
@@ -68,16 +70,23 @@ export class CollegeDataManager {
     try {
       // Load any cached updates from AsyncStorage
       await this.loadCachedUpdates();
+      console.log("Loading cached updates...");
       
       // Check for new updates from server
-      // Only fetch updates if last fetch was more than 1 hour ago
+      // Only fetch updates if last fetch was more than 1.5 hour ago
       const lastFetch = await AsyncStorage.getItem(COLLEGES_LAST_FETCH_KEY);
+      console.log("Checking for updates...`");
       const now = Date.now();
       
-      if (!lastFetch || now - parseInt(lastFetch, 10) > 3600000) {
+      if (( !lastFetch || now - parseInt(lastFetch, 10) > 1.5*3600000)) {
+        console.log("Fetching updates...");
         await this.checkForUpdates();
+        console.log("Updates fetched successfully.");
+        
         await AsyncStorage.setItem(COLLEGES_LAST_FETCH_KEY, now.toString());
       }
+      console.log("Checking for updates...");
+      
       
       return this.colleges;
     } finally {
@@ -131,7 +140,6 @@ export class CollegeDataManager {
     try {
       // Fetch the current version from your API
       const response = await fetch(`${COLLEGE_API}/colleges/version`);
-      console.log("VERSION CHECK RESPONSE", response);
       
       
       if (!response.ok) {
@@ -139,6 +147,7 @@ export class CollegeDataManager {
       }
       
       const { version } = await response.json();
+      console.log("VERSION CHECK RESPONSE", version);
       
       // Get the stored version
       const storedVersion = await AsyncStorage.getItem(COLLEGES_VERSION_KEY) || '0';
@@ -147,7 +156,7 @@ export class CollegeDataManager {
       if (version > storedVersion) {
         await this.fetchUpdates(storedVersion, version);
         // Store the new version
-        await AsyncStorage.setItem(COLLEGES_VERSION_KEY, version);
+        await AsyncStorage.setItem(COLLEGES_VERSION_KEY, version.toString());
       }
     } catch (error) {
       console.error('Failed to check for updates:', error);
@@ -158,13 +167,13 @@ export class CollegeDataManager {
     try {
       // Fetch only the colleges that changed since the last version
       const response = await fetch(`${COLLEGE_API}/colleges/updates?from=${fromVersion}&to=${toVersion}`);
-      console.log("UPDATES CHECK RESPONSE", response);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch college updates: ${response.status}`);
       }
       
       const updates = await response.json();
+      console.log("UPDATES CHECK RESPONSE", updates);
       
       if (updates.length > 0) {
         // Apply the updates
@@ -220,7 +229,7 @@ export class CollegeDataManager {
       }
       
       // Check in institute code
-      if (college.instituteCode.toString().includes(normalizedQuery)) {
+      if (college.instituteCode.toString().includes(normalizedQuery) || college.instituteCode.toString().padStart(5,'0').includes(normalizedQuery)) {
         return true;
       }
       

@@ -1,34 +1,24 @@
 import { StyleSheet, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getUserData, getUserPlanData } from '../utils/storage';
+import React, { useEffect } from 'react'
 import StackNavigationPremium from '../components/Counselling/StackNavigationPremium';
+import { usePremiumPlan } from '../contexts/PremiumPlanContext';
 
 const Counselling = ({ route, navigation }: any) => {
-  const [currentPlan, setCurrentPlan] = useState('Free')
-  const [isPremium, setIsPremium] = useState(false)
+  const { currentPlan, refreshPlanData } = usePremiumPlan();
 
   useEffect(() => {
-    const checkPlan = async () => {
-      const plan = await getUserPlanData();
-      console.log("Plan found", plan);
-      
-      if (plan) {
-        if(plan.isPremium) {
-          setCurrentPlan(plan.plan?.planTitle ?? "Premium")
-        }
-        setIsPremium(plan.isPremium)
-      }
-    }
-    checkPlan()
-  },[])
+    // Refresh plan data when component mounts
+    refreshPlanData();
+  }, []);
 
   useEffect(() => {
     // Check if we received params through tab navigation
     if (route?.params?.selectedPlan) {
-      setCurrentPlan(route.params.selectedPlan)
+      // No need to setCurrentPlan as it's managed by context
+      // But we might want to refresh plan data
+      refreshPlanData();
     }
-  }, [route?.params])
+  }, [route?.params]);
 
   return (
     <StackNavigationPremium planType={currentPlan as 'Premium' | 'Counselling' | 'Free'} />

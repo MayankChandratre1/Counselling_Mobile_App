@@ -24,6 +24,7 @@ import EventDetails from './pages/EventDetails';
 import Favourites from './pages/Favourites';
 import AllEvents from './pages/AllEvents';
 import ListDetailsScreen from './pages/Lists/ListDetailsScreen';
+import { PremiumPlanProvider } from './contexts/PremiumPlanContext';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -203,7 +204,8 @@ const App = () => {
         storeUserPlanData(response.data);
         storeUserData({
           ...userData,
-          isPremium: response.data.isPremium        })
+          isPremium: response.data.isPremium
+        })
       } else {
         setIsPremium(false);
       }
@@ -287,47 +289,50 @@ const App = () => {
     <NavigationContainer>
       <CollegeProvider>
         <EventsProvider>
-          <View style={{ flex: 1 }}>
-            <Stack.Navigator 
-              screenOptions={{ 
-                headerShown: false,
-                animation: 'none'
-              }}
-            >
-              {!isLoggedIn ? (
-                <>
-                  <Stack.Screen 
-                    name="Onboarding" 
-                    component={OnboardingScreen} 
-                    initialParams={{ step: 1 }}
-                  />
-                  <Stack.Screen name="Login" component={LoginScreen} />
-                  <Stack.Screen name="Home" component={TabNavigator} />
-                  <Stack.Screen name="Notification" component={Notification} />
-                  <Stack.Screen name="PlanDetails" component={PlanDetails} />
-                  <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
-                  <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
-                </>
-              ) : (
-                <>
-                  <Stack.Screen name="Home" component={TabNavigator} />
-                  <Stack.Screen name="Login" component={LoginScreen} />
-                  <Stack.Screen name="Notification" component={Notification} />
-                  <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
-                  <Stack.Screen name="PlanDetails" component={PlanDetails} />
-                  <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
-                  <Stack.Screen name="MyLists" component={MyLists} />
-                 
-                </>
-              )}
-                <Stack.Screen name="AllUpdates" component={AllUpdates} />
-                <Stack.Screen name="AllEvents" component={AllEvents} />
-                <Stack.Screen name="EventDetails" component={EventDetails} />
-                <Stack.Screen name="Favourites" component={Favourites} />
-                <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
-            </Stack.Navigator>
-            {isLoggedIn && !isPremium && <PremiumButton />}
-          </View>
+          <PremiumPlanProvider>
+            <View style={{ flex: 1 }}>
+              <Stack.Navigator 
+                screenOptions={{ 
+                  headerShown: false,
+                  animation: 'none'
+                }}
+              >
+                {!isLoggedIn ? (
+                  <>
+                    <Stack.Screen 
+                      name="Onboarding" 
+                      component={OnboardingScreen} 
+                      initialParams={{ step: 1 }}
+                    />
+                    <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="Home" component={TabNavigator} />
+                    <Stack.Screen name="Notification" component={Notification} />
+                    <Stack.Screen name="PlanDetails" component={PlanDetails} />
+                    <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
+                    <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
+                  </>
+                ) : (
+                  <>
+                    
+                    <Stack.Screen name="Home" component={TabNavigator} />
+                    <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="Notification" component={Notification} />
+                    <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
+                    <Stack.Screen name="PlanDetails" component={PlanDetails} />
+                    <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
+                    <Stack.Screen name="MyLists" component={MyLists} />
+                   
+                  </>
+                )}
+                  <Stack.Screen name="AllUpdates" component={AllUpdates} />
+                  <Stack.Screen name="AllEvents" component={AllEvents} />
+                  <Stack.Screen name="EventDetails" component={EventDetails} />
+                  <Stack.Screen name="Favourites" component={Favourites} />
+                  <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
+              </Stack.Navigator>
+              {isLoggedIn && !isPremium && <PremiumButton />}
+            </View>
+          </PremiumPlanProvider>
         </EventsProvider>
       </CollegeProvider>
     </NavigationContainer>

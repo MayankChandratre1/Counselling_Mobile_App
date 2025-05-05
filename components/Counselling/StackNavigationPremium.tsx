@@ -27,16 +27,26 @@ const StackNavigationPremium = ({ planType }: PremiumStackProps) => {
     >
       {/* Base screens based on plan type */}
       {planType == 'Free' ? (
+        <>
         <Stack.Screen name="FreeDashboard" component={FreeDashboard} />
+        <Stack.Screen name="CounsellingForm" component={CounsellingForm} initialParams={{
+          locked: true
+        }}/>
+        </>
+        
       ) : (
+        <>
         <Stack.Screen name="PremiumDashboard" component={PremiumDashboard} />
+        <Stack.Screen name="CounsellingForm" component={CounsellingForm} initialParams={{
+          locked: false
+        }}/>
+        </>
       )}
 
       {/* Common screens for all plan types */}
       <Stack.Screen name="RecommendedColleges" component={RecommendedColleges} />
       <Stack.Screen name="CutoffCalculator" component={CutoffCalculator} />
-      <Stack.Screen name="CounsellingForm" component={CounsellingForm}
-      />
+      
       <Stack.Screen name="MyPlan" component={MyPlan} />
 
       {/* Conditional Counselling Screens */}

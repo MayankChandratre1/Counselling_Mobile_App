@@ -121,8 +121,8 @@ const ListDetails = ({ title, colleges, fullScreen = false }: ListDetailsProps) 
       ]}>
         <View style={styles.header}>
           <CustomText style={[styles.headerCell, styles.serialNoCell]}>Sr.</CustomText>
-          <CustomText style={[styles.headerCell, styles.collegeCell]}>College Name</CustomText>
-          <CustomText style={[styles.headerCell, styles.branchCell]}>Branch Details</CustomText>
+          <CustomText style={[styles.headerCell, styles.collegeCell]}>College</CustomText>
+          <CustomText style={[styles.headerCell, styles.branchCell]}>Branch</CustomText>
         </View>
 
         <FlatList
@@ -136,11 +136,11 @@ const ListDetails = ({ title, colleges, fullScreen = false }: ListDetailsProps) 
               <View style={[styles.cell, styles.collegeCell]}>
                 <CustomText style={styles.collegeName}>{item.instituteName}</CustomText>
                 <View style={styles.collegeStatusContainer}>
-                  {
+                  {/* {
                     item.additionalMetadata.status && (<View style={styles.categoryPill}>
                       <CustomText style={styles.categoryText}>{item.additionalMetadata.status}</CustomText>
                   </View>)
-                  }
+                  } */}
                   {
                     item.additionalMetadata.autonomyStatus && (<View style={styles.categoryPill}>
                       <CustomText style={styles.categoryText}>{getShortenAutonomyStatus(item.additionalMetadata.autonomyStatus)}</CustomText>
@@ -191,14 +191,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
   },
   fullScreenTableWrapper: {
     marginVertical: 0,

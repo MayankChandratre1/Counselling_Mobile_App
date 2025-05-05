@@ -44,7 +44,7 @@ const Screen2 = () => (
           App By
         </CustomText>
         <CustomText style={styles.logoText}>
-          Yash Aaradhey
+          Yash Aradhye
         </CustomText>
       </View>
     </View>
@@ -58,9 +58,11 @@ const Screen2 = () => (
       />
       
       <View style={styles.achievementsContainer}>
-        <CustomText style={styles.achievement}>100K+ on Youtube</CustomText>
-        <CustomText style={styles.achievement}>Helped 10K+ students</CustomText>
-        <CustomText style={styles.achievement}>Coding Courses</CustomText>
+        {['100K+ on Youtube', 'Helped 10K+ students', 'Coding Courses'].map((item, index) => (
+          <View key={index} style={styles.achievementCard}>
+            <CustomText style={styles.achievement}>{item}</CustomText>
+          </View>
+        ))}
       </View>
     </View>
   </ScrollView>
@@ -68,6 +70,9 @@ const Screen2 = () => (
 
 const FeatureItem = ({ title }: { title: string }) => (
   <View style={styles.featureItem}>
+    <View style={styles.featureIconContainer}>
+      <CustomText style={styles.featureIcon}>✓</CustomText>
+    </View>
     <CustomText style={styles.featureText}>{title}</CustomText>
   </View>
 );
@@ -75,13 +80,15 @@ const FeatureItem = ({ title }: { title: string }) => (
 const Screen3 = () => (
   <ScrollView contentContainerStyle={styles.screenContentContainer}>
     <CustomText style={styles.whyJoinUs}>Why Join Us?</CustomText>
-    <View style={styles.featuresContainer}>
-      <FeatureItem title="College Description" />
-      <FeatureItem title="College Fees" />
-      <FeatureItem title="Previous Year Cutoffs" />
-      <FeatureItem title="Placement Statistics" />
-      <FeatureItem title="Campus Details" />
-      <FeatureItem title="Admission Process" />
+    <View style={styles.featuresCard}>
+      <View style={styles.featuresContainer}>
+        <FeatureItem title="College Description" />
+        <FeatureItem title="College Fees" />
+        <FeatureItem title="Previous Year Cutoffs" />
+        <FeatureItem title="Placement Statistics" />
+        <FeatureItem title="Campus Details" />
+        <FeatureItem title="Admission Process" />
+      </View>
     </View>
   </ScrollView>
 );
@@ -141,7 +148,7 @@ export const OnboardingScreen = ({ navigation, route }:any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f5f6fa', // Matching Home.tsx background
     fontFamily: FONTS.REGULAR,
   },
   screenContentContainer: {
@@ -154,17 +161,16 @@ const styles = StyleSheet.create({
   welcomeIntro: {
     fontSize: 18 * scale,
     marginBottom: 10,
-    fontFamily: 'Roboto-Regular',
-    color: '#333333',
+    fontFamily: FONTS.REGULAR,
+    color: '#666', // Secondary text color from Home.tsx
   },
   trustedText: {
     fontSize: Math.min(36 * scale, 30),
     width: '100%',
-    color: '#006FFD',
+    color: '#371981', // Primary color from Home.tsx
     fontWeight: 'bold',
     textDecorationLine: 'underline',
     fontFamily: FONTS.BOLD,
-
   },
   welcomeHeading: {
     fontSize: Math.min(36 * scale, 30),
@@ -177,7 +183,7 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
   imageContainer: {
-    backgroundColor: '#64A6FA99',
+    backgroundColor: 'rgba(55, 25, 129, 0.15)', // Lighter version of primary color
     borderRadius: Math.min(SCREEN_WIDTH * 0.4, 200),
     width: Math.min(SCREEN_WIDTH * 0.8, 200),
     height: Math.min(SCREEN_WIDTH * 0.8, 200),
@@ -185,11 +191,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
+    
   },
   roundedImage: {
     width: '100%',
     maxWidth: 200,
     height: '100%',
+    opacity: 0.9, // Reduced opacity to better see the content
+  
   },
   logoContainer: {
     width: '100%',
@@ -208,12 +217,14 @@ const styles = StyleSheet.create({
   appByText: {
     fontSize: 14 * scale,
     fontFamily: FONTS.REGULAR,
+    color: '#666',
   },
   logoText: {
     fontSize: Math.min(28 * scale, 30),
     fontWeight: 'bold',
-    color: "#006FFD",
+    color: "#371981", // Primary color from Home.tsx
     fontFamily: FONTS.BOLD,
+    height: 30,
   },
   backgroundContainer: {
     flex: 1,
@@ -228,7 +239,7 @@ const styles = StyleSheet.create({
     height: SCREEN_WIDTH * 2.5,
     bottom: -SCREEN_WIDTH * 0.6,
     right: -SCREEN_WIDTH * 0.8,
-    opacity: 0.7,
+    opacity: 0.4, // Reduced opacity to better see the content
     zIndex: -1,
   },
   achievementsContainer: {
@@ -236,38 +247,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginTop: 20,
   },
-  achievement: {
-    fontSize: Math.min(24 * scale, 22),
-    fontWeight: 'bold',
-    color: "#fff",
+  achievementCard: {
     marginVertical: 10,
+    backgroundColor: '#fff',
+    padding: 0,
+    borderRadius: 12,
+    // Match Home.tsx card shadow
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  achievement: {
+    fontSize: Math.min(18 * scale, 18),
+    fontWeight: '600',
+    color: "#333",
     textAlign: 'center',
-    backgroundColor: '#64a6fa',
+    backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#371981', // Primary color as accent
   },
   whyJoinUs: {
     fontSize: Math.min(24 * scale, 28),
     fontWeight: 'bold',
-    marginBottom: 30,
-    color: "#64A6FA",
+    marginBottom: 20,
+    color: "#371981", // Primary color from Home.tsx
     fontFamily: FONTS.BOLD,
+  },
+  featuresCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    width: '100%',
+    // Match Home.tsx card shadow
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
   },
   featuresContainer: {
     width: '100%',
   },
   featureItem: {
-    marginVertical: 10,
-    backgroundColor: '#64A6FA',
-    padding: 16,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  featureIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#371981', // Primary color
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  featureIcon: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   featureText: {
-    fontSize: Math.min(18 * scale, 20),
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: "#fff",
-    fontFamily: FONTS.BOLD,
+    fontSize: Math.min(16 * scale, 16),
+    fontFamily: FONTS.MEDIUM,
+    color: "#333",
   },
   navigationContainer: {
     flexDirection: 'row',
@@ -282,9 +333,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    // Add shadow like in Home.tsx
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
   },
   skipButton: {
-    backgroundColor: '#64A6FA30',
+    backgroundColor: '#f0f0f0', // Subtle background for skip
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -292,7 +349,7 @@ const styles = StyleSheet.create({
   skipButtonText: {
     color: '#666',
     fontSize: 14 * scale,
-    fontFamily: FONTS.REGULAR,
+    fontFamily: FONTS.MEDIUM,
   },
   dotContainer: {
     flexDirection: 'row',
@@ -306,13 +363,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: '#64A6FA',
+    backgroundColor: '#371981', // Primary color
     width: 10,
     height: 10,
     borderRadius: 5,
   },
   nextButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#371981', // Primary color from Home.tsx
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

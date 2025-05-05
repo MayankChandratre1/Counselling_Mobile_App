@@ -58,6 +58,7 @@ const TabNavigator = () => {
                 <CustomTabBarIcon focused={focused} icon={screen.icon} label={screen.name} />
               ),
             }}
+            
           />
         ))}
       </Tab.Navigator>
@@ -91,11 +92,11 @@ const styles = StyleSheet.create({
   },
   tabItemActive: {
     backgroundColor: '#371981',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.8,
-    shadowRadius: 1, 
-    elevation: 5,
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
   },
 });
 

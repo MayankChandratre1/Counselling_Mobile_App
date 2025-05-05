@@ -157,17 +157,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     paddingVertical: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',

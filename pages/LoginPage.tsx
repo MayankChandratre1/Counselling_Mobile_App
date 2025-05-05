@@ -6,6 +6,8 @@ import config from '../configs/API';
 import CustomText from '../components/General/CustomText';
 import { FONTS } from '../styles/typography';
 import CustomTextInput from '../components/General/CustomTextInput';
+import DeviceInfo from 'react-native-device-info';
+
 
 export const LoginScreen = ({navigation}:any) => {
   const [phone, setPhone] = useState('');
@@ -69,6 +71,10 @@ export const LoginScreen = ({navigation}:any) => {
     }, 1000);
   };
 
+  const getDeviceId = async () => {
+    const uniqueId = await DeviceInfo.getUniqueId(); // e.g., 'd65f7cfd29e34567a7f3fbb1f17a7ee3'
+    return uniqueId;
+  };
   // Format seconds to mm:ss
   const formatTime = (seconds: number) => {
     return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
@@ -158,12 +164,15 @@ export const LoginScreen = ({navigation}:any) => {
     
     try {
       setLoading(true);
+      const deviceId = await getDeviceId();
+      console.log("Device ID:", deviceId);
+      
       const res = await fetch(`${config.USER_API}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ phone, password })
+        body: JSON.stringify({ phone, password, deviceId })
       });
       
       const data = await res.json();

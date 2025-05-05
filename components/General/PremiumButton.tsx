@@ -10,6 +10,20 @@ const PremiumButton = () => {
   return (
     <TouchableOpacity 
       style={styles.container}
+      onPress={() => {
+        if(navigation){
+          console.log("Navigation is available");
+          console.log(navigation.getState());
+          
+          
+        }
+        // navigation.dispatch(
+        //   CommonActions.navigate({
+        //     name: 'Home',
+        //     params: { screen: 'Counselling' },
+        //   })
+        // );
+      }}
     >
       <Icon name="crown" size={32} color="#FFFFFF" />
     </TouchableOpacity>

@@ -12,12 +12,16 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  TextInput
+  TextInput,
+  Text
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import CustomText from '../General/CustomText';
 import CustomTextInput from '../General/CustomTextInput';
+import { usePremiumPlan } from '../../contexts/PremiumPlanContext';
+import { useNavigation } from '@react-navigation/native';
 
 interface StepEditModalProps {
   visible: boolean;
@@ -61,6 +65,12 @@ const StepEditModal = ({ visible, onClose, onSave, stepData, step }: StepEditMod
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const { height: screenHeight } = Dimensions.get('window');
+  
+  // Get premium plan context information
+  const { currentPlan } = usePremiumPlan();
+  const navigation = useNavigation<any>();
+  
+  const isPlanFree = currentPlan === 'Free';
   
   // Update local state when stepData changes
   useEffect(() => {
@@ -174,6 +184,57 @@ const StepEditModal = ({ visible, onClose, onSave, stepData, step }: StepEditMod
     return '90%';
   };
 
+  const handleExplorePlans = () => {
+    // Close the modal first
+    handleClose();
+    // Navigate to counselling tab with FreeDashboard screen
+    setTimeout(() => {
+      navigation.navigate({
+        name: 'Counselling',
+        params: { screen: 'FreeDashboard' },
+      });
+    }, 300);
+  };
+
+  // Render locked content for free plan users
+  const renderLockedContent = () => (
+    <ScrollView style={styles.lockedModalContent}>
+      <View style={styles.stepHeaderSection}>
+        <View style={styles.stepNumberBadge}>
+          <CustomText style={styles.stepNumberText}>{step.number}</CustomText>
+        </View>
+        
+        <View style={styles.stepTitleContainer}>
+          <CustomText style={styles.stepTitle}>{step.title}</CustomText>
+          
+          {step.description && (
+            <CustomText style={styles.stepDescription}>{step.description}</CustomText>
+          )}
+        </View>
+      </View>
+      
+      <View style={styles.lockedContentContainer}>
+        <View style={styles.lockedIconContainer}>
+          <FontAwesome5 name="lock" size={64} color="#DDDDDD" />
+        </View>
+        
+        <CustomText style={styles.lockedTitle}>Premium Feature</CustomText>
+        
+       
+        
+        <TouchableOpacity 
+          style={styles.explorePlansButton}
+          onPress={handleExplorePlans}
+          accessibilityRole="button"
+          accessibilityLabel="Explore premium plans"
+        >
+          <CustomText style={styles.explorePlansText}>Explore Plans</CustomText>
+          <Icon name="arrow-right" size={20} color="#fff" style={styles.explorePlansIcon} />
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -216,7 +277,7 @@ const StepEditModal = ({ visible, onClose, onSave, stepData, step }: StepEditMod
                     style={styles.modalTitle}
                     accessibilityRole="header"
                   >
-                    Edit Step {step.number}
+                    {isPlanFree ? "Premium Feature" : `Edit Step ${step.number}`}
                   </CustomText>
                   <TouchableOpacity 
                     style={styles.closeButton} 
@@ -229,203 +290,221 @@ const StepEditModal = ({ visible, onClose, onSave, stepData, step }: StepEditMod
                   </TouchableOpacity>
                 </View>
                 
-                <ScrollView 
-                  style={styles.modalContent}
-                  showsVerticalScrollIndicator={true} // Show scrollbar for better UX
-                  bounces={true}
-                  contentContainerStyle={styles.scrollContentContainer}
-                  keyboardShouldPersistTaps="handled" // Better keyboard handling
-                  nestedScrollEnabled={true} // Enable nested scrolling
-                >
-                  <View style={styles.stepHeaderSection}>
-                    <View style={[
-                      styles.stepNumberBadge,
-                      inputData.status === 'Yes' ? styles.stepNumberBadgeCompleted : 
-                      inputData.status === 'No' ? styles.stepNumberBadgeRejected : null
-                    ]}>
-                      <CustomText style={styles.stepNumberText}>{step.number}</CustomText>
-                    </View>
-                    
-                    <View style={styles.stepTitleContainer}>
-                      <CustomText style={styles.stepTitle}>{step.title}</CustomText>
-                      
-                      {step.description && (
-                        <CustomText style={styles.stepDescription}>{step.description}</CustomText>
-                      )}
-                    </View>
-                  </View>
-                  
-                  {/* Show verdict if available for verdict steps */}
-                  {step.isVerdict && stepData.verdict && (
-                    <View style={styles.verdictContainer}>
-                      <View style={styles.verdictHeader}>
-                        <Icon name="lightbulb-outline" size={22} color="#371981" style={styles.verdictIcon} />
-                        <CustomText style={styles.verdictLabel}>Recommended Verdict</CustomText>
-                      </View>
-                      <CustomText style={styles.verdictText}>{stepData.verdict}</CustomText>
-                      
-                      <View style={styles.acceptanceStatus}>
-                        <CustomText style={styles.acceptanceLabel}>
-                          Status: 
-                        </CustomText>
-                        <CustomText style={[
-                          styles.acceptanceValue,
-                          stepData.accept ? styles.acceptedText : styles.pendingText
+                {isPlanFree ? (
+                  // Render locked content for free plan users
+                    <ScrollView 
+                      style={styles.modalContent}
+                      showsVerticalScrollIndicator={true} // Show scrollbar for better UX
+                      bounces={true}
+                      contentContainerStyle={styles.scrollContentContainer}
+                      keyboardShouldPersistTaps="handled" // Better keyboard handling
+                      nestedScrollEnabled={true} // Enable nested scrolling
+                    >
+                    {renderLockedContent()}
+                    </ScrollView>
+                ) : (
+                  // Render normal edit modal content for premium users
+                  <>
+                    <ScrollView 
+                      style={styles.modalContent}
+                      showsVerticalScrollIndicator={true} // Show scrollbar for better UX
+                      bounces={true}
+                      contentContainerStyle={styles.scrollContentContainer}
+                      keyboardShouldPersistTaps="handled" // Better keyboard handling
+                      nestedScrollEnabled={true} // Enable nested scrolling
+                    >
+                      {/* ...existing content goes here... */}
+                      <View style={styles.stepHeaderSection}>
+                        <View style={[
+                          styles.stepNumberBadge,
+                          inputData.status === 'Yes' ? styles.stepNumberBadgeCompleted : 
+                          inputData.status === 'No' ? styles.stepNumberBadgeRejected : null
                         ]}>
-                          {stepData.accept ? 'Accepted' : 'Pending Acceptance'}
-                        </CustomText>
+                          <CustomText style={styles.stepNumberText}>{step.number}</CustomText>
+                        </View>
+                        
+                        <View style={styles.stepTitleContainer}>
+                          <CustomText style={styles.stepTitle}>{step.title}</CustomText>
+                          
+                          {step.description && (
+                            <CustomText style={styles.stepDescription}>{step.description}</CustomText>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  )}
-                  
-                  <View style={[styles.inputSection, styles.statusSection]}>
-                    <CustomText 
-                      style={styles.sectionLabel}
-                      accessibilityRole="text"
-                    >
-                      Status
-                    </CustomText>
-                    <View style={styles.radioGroup}>
-                      {statusOptions.map((option) => (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={[
-                            styles.radioOption,
-                            inputData.status === option.value && (
-                              option.value === 'Yes' ? styles.radioOptionSelectedYes : styles.radioOptionSelectedNo
-                            )
-                          ]}
-                          onPress={() => setInputData(prev => ({...prev, status: option.value}))}
-                          accessibilityRole="radio"
-                          accessibilityState={{ checked: inputData.status === option.value }}
-                          accessibilityLabel={option.label}
-                        >
-                          <View style={[
-                            styles.radio,
-                            inputData.status === option.value && (
-                              option.value === 'Yes' ? styles.radioSelectedYes : styles.radioSelectedNo
-                            )
-                          ]}>
-                            {inputData.status === option.value && (
-                              <View style={[
-                                styles.radioInner,
-                                option.value === 'Yes' ? styles.radioInnerYes : styles.radioInnerNo
-                              ]} />
-                            )}
+                      
+                      {/* Show verdict if available for verdict steps */}
+                      {step.isVerdict && stepData.verdict && (
+                        <View style={styles.verdictContainer}>
+                          <View style={styles.verdictHeader}>
+                            <Icon name="lightbulb-outline" size={22} color="#371981" style={styles.verdictIcon} />
+                            <CustomText style={styles.verdictLabel}>Recommended Verdict</CustomText>
                           </View>
-                          <CustomText style={[
-                            styles.radioLabel,
-                            inputData.status === option.value && (
-                              option.value === 'Yes' ? styles.radioLabelYes : styles.radioLabelNo
-                            )
-                          ]}>
-                            {option.label}
+                          <CustomText style={styles.verdictText}>{stepData.verdict}</CustomText>
+                          
+                          <View style={styles.acceptanceStatus}>
+                            <CustomText style={styles.acceptanceLabel}>
+                              Status: 
+                            </CustomText>
+                            <CustomText style={[
+                              styles.acceptanceValue,
+                              stepData.accept ? styles.acceptedText : styles.pendingText
+                            ]}>
+                              {stepData.accept ? 'Accepted' : 'Pending Acceptance'}
+                            </CustomText>
+                          </View>
+                        </View>
+                      )}
+                      
+                      <View style={[styles.inputSection, styles.statusSection]}>
+                        <CustomText 
+                          style={styles.sectionLabel}
+                          accessibilityRole="text"
+                        >
+                          Status
+                        </CustomText>
+                        <View style={styles.radioGroup}>
+                          {statusOptions.map((option) => (
+                            <TouchableOpacity
+                              key={option.value}
+                              style={[
+                                styles.radioOption,
+                                inputData.status === option.value && (
+                                  option.value === 'Yes' ? styles.radioOptionSelectedYes : styles.radioOptionSelectedNo
+                                )
+                              ]}
+                              onPress={() => setInputData(prev => ({...prev, status: option.value}))}
+                              accessibilityRole="radio"
+                              accessibilityState={{ checked: inputData.status === option.value }}
+                              accessibilityLabel={option.label}
+                            >
+                              <View style={[
+                                styles.radio,
+                                inputData.status === option.value && (
+                                  option.value === 'Yes' ? styles.radioSelectedYes : styles.radioSelectedNo
+                                )
+                              ]}>
+                                {inputData.status === option.value && (
+                                  <View style={[
+                                    styles.radioInner,
+                                    option.value === 'Yes' ? styles.radioInnerYes : styles.radioInnerNo
+                                  ]} />
+                                )}
+                              </View>
+                              <CustomText style={[
+                                styles.radioLabel,
+                                inputData.status === option.value && (
+                                  option.value === 'Yes' ? styles.radioLabelYes : styles.radioLabelNo
+                                )
+                              ]}>
+                                {option.label}
+                              </CustomText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                      
+                      {/* Improved college and branch inputs for cap result steps */}
+                      {step.isCapQuery && (
+                        <View style={styles.capQueryContainer}>
+                          <CustomText 
+                            style={styles.sectionLabel}
+                            accessibilityRole="text"
+                          >
+                            CAP Result Details
                           </CustomText>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                  
-                  {/* Improved college and branch inputs for cap result steps */}
-                  {step.isCapQuery && (
-                    <View style={styles.capQueryContainer}>
-                      <CustomText 
-                        style={styles.sectionLabel}
-                        accessibilityRole="text"
+                          
+                          <View style={styles.inputBlock}>
+                            <CustomText 
+                              style={styles.inputLabel}
+                              accessibilityRole="text"
+                            >
+                              Allotted College
+                            </CustomText>
+                            <View style={styles.inputWrapper}>
+                              <Icon name="school" size={15} color="#613EEA" style={styles.inputIcon} />
+                              <TextInput
+                                style={styles.textInput}
+                                value={inputData.collegeName}
+                                onChangeText={(text) => setInputData(prev => ({...prev, collegeName: text}))}
+                                placeholder="Enter college name"
+                                placeholderTextColor="#999"
+                                accessibilityLabel="Enter allotted college name"
+                              />
+                            </View>
+                          </View>
+                          
+                          <View style={styles.inputBlock}>
+                            <CustomText 
+                              style={styles.inputLabel}
+                              accessibilityRole="text"
+                            >
+                              Branch Code
+                            </CustomText>
+                            <View style={styles.inputWrapper}>
+                              <Icon name="code-braces" size={15} color="#613EEA" style={styles.inputIcon} />
+                              <TextInput
+                                style={styles.textInput}
+                                value={inputData.branchCode}
+                                onChangeText={(text) => setInputData(prev => ({...prev, branchCode: text}))}
+                                placeholder="Enter branch code"
+                                placeholderTextColor="#999"
+                                accessibilityLabel="Enter branch code"
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      )}
+                      
+                      <View style={styles.inputSection}>
+                        <CustomText 
+                          style={styles.sectionLabel}
+                          accessibilityRole="text"
+                        >
+                          Remarks
+                        </CustomText>
+                        <View style={styles.textAreaWrapper}>
+                          <CustomTextInput
+                            style={styles.textArea}
+                            value={inputData.remark}
+                            onChangeText={(text) => setInputData(prev => ({...prev, remark: text}))}
+                            placeholder="Add your remarks here..."
+                            placeholderTextColor="#999"
+                            multiline
+                            textAlignVertical="top"
+                            numberOfLines={6} // Increased for better visibility
+                            accessibilityLabel="Add remarks"
+                            accessibilityHint="Enter any additional information about this step"
+                          />
+                        </View>
+                      </View>
+                      
+                      {/* Add spacer to ensure content is scrollable past the footer */}
+                      <View style={styles.bottomSpacer} />
+                    </ScrollView>
+                    
+                    <View style={styles.modalFooter}>
+                      <TouchableOpacity 
+                        style={styles.cancelButton} 
+                        onPress={handleClose}
+                        accessibilityRole="button"
+                        accessibilityLabel="Cancel"
+                        accessibilityHint="Discard changes and close modal"
                       >
-                        CAP Result Details
-                      </CustomText>
-                      
-                      <View style={styles.inputBlock}>
-                        <CustomText 
-                          style={styles.inputLabel}
-                          accessibilityRole="text"
-                        >
-                          Allotted College
-                        </CustomText>
-                        <View style={styles.inputWrapper}>
-                          <Icon name="school" size={15} color="#613EEA" style={styles.inputIcon} />
-                          <TextInput
-                            style={styles.textInput}
-                            value={inputData.collegeName}
-                            onChangeText={(text) => setInputData(prev => ({...prev, collegeName: text}))}
-                            placeholder="Enter college name"
-                            placeholderTextColor="#999"
-                            accessibilityLabel="Enter allotted college name"
-                          />
-                        </View>
-                      </View>
-                      
-                      <View style={styles.inputBlock}>
-                        <CustomText 
-                          style={styles.inputLabel}
-                          accessibilityRole="text"
-                        >
-                          Branch Code
-                        </CustomText>
-                        <View style={styles.inputWrapper}>
-                          <Icon name="code-braces" size={15} color="#613EEA" style={styles.inputIcon} />
-                          <TextInput
-                            style={styles.textInput}
-                            value={inputData.branchCode}
-                            onChangeText={(text) => setInputData(prev => ({...prev, branchCode: text}))}
-                            placeholder="Enter branch code"
-                            placeholderTextColor="#999"
-                            accessibilityLabel="Enter branch code"
-                          />
-                        </View>
-                      </View>
+                        <CustomText style={styles.cancelButtonText}>Cancel</CustomText>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.saveButton}
+                        onPress={handleSave}
+                        accessibilityRole="button"
+                        accessibilityLabel="Save changes"
+                        accessibilityHint="Save your changes and close modal"
+                      >
+                        <CustomText style={styles.saveButtonText}>Save Changes</CustomText>
+                        <Icon name="check-circle" size={18} color="#fff" style={styles.saveButtonIcon} />
+                      </TouchableOpacity>
                     </View>
-                  )}
-                  
-                  <View style={styles.inputSection}>
-                    <CustomText 
-                      style={styles.sectionLabel}
-                      accessibilityRole="text"
-                    >
-                      Remarks
-                    </CustomText>
-                    <View style={styles.textAreaWrapper}>
-                      <CustomTextInput
-                        style={styles.textArea}
-                        value={inputData.remark}
-                        onChangeText={(text) => setInputData(prev => ({...prev, remark: text}))}
-                        placeholder="Add your remarks here..."
-                        placeholderTextColor="#999"
-                        multiline
-                        textAlignVertical="top"
-                        numberOfLines={6} // Increased for better visibility
-                        accessibilityLabel="Add remarks"
-                        accessibilityHint="Enter any additional information about this step"
-                      />
-                    </View>
-                  </View>
-                  
-                  {/* Add spacer to ensure content is scrollable past the footer */}
-                  <View style={styles.bottomSpacer} />
-                </ScrollView>
-                
-                <View style={styles.modalFooter}>
-                  <TouchableOpacity 
-                    style={styles.cancelButton} 
-                    onPress={handleClose}
-                    accessibilityRole="button"
-                    accessibilityLabel="Cancel"
-                    accessibilityHint="Discard changes and close modal"
-                  >
-                    <CustomText style={styles.cancelButtonText}>Cancel</CustomText>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.saveButton}
-                    onPress={handleSave}
-                    accessibilityRole="button"
-                    accessibilityLabel="Save changes"
-                    accessibilityHint="Save your changes and close modal"
-                  >
-                    <CustomText style={styles.saveButtonText}>Save Changes</CustomText>
-                    <Icon name="check-circle" size={18} color="#fff" style={styles.saveButtonIcon} />
-                  </TouchableOpacity>
-                </View>
+                  </>
+                )}
               </Animated.View>
             </KeyboardAvoidingView>
           </Animated.View>
@@ -456,14 +535,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -3,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 8,
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
     paddingBottom: Platform.OS === 'ios' ? 20 : 10,
   },
   modalHandle: {
@@ -744,11 +820,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
     backgroundColor: '#FFFFFF',
-    elevation: 3, // Add elevation to make footer stand out
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
   },
   cancelButton: {
     paddingVertical: 12,
@@ -794,7 +870,67 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 40, // Extra space to ensure content is visible
-  }
+  },
+  lockedModalContent: {
+    padding: 20,
+    flex: 1,
+  },
+  lockedContentContainer: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(55, 25, 129, 0.03)',
+    borderRadius: 12,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+  },
+  lockedIconContainer: {
+    marginBottom: 20,
+    backgroundColor: 'rgba(55, 25, 129, 0.05)',
+    borderRadius: 50,
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lockedTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  lockedDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  explorePlansButton: {
+    backgroundColor: '#371981',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 200,
+    shadowColor: '#371981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  explorePlansText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  explorePlansIcon: {
+    marginLeft: 4,
+  },
 });
 
 export default StepEditModal;

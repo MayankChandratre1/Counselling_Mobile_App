@@ -23,7 +23,7 @@ const SPACING = {
   xl: 32
 }
 
-const CounsellingForm = () => {
+const CounsellingForm = ({route}:any) => {
   const navigation = useNavigation<any>()
   const [steps, setSteps] = useState<any[] | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -32,14 +32,11 @@ const CounsellingForm = () => {
   const [stepsData, setStepsData] = useState<{[key: number]: {status: 'Yes' | 'No', remark: string, verdict?: string}}>({})
   const [refreshing, setRefreshing] = useState<boolean>(false)
 
-  const cancelPlan = async () => {
-    try {
-      await AsyncStorage.removeItem('plan')
-      // Add feedback to user that plan was canceled
-    } catch (error) {
-      console.error('Error canceling plan:', error)
-    }
-  }
+  useEffect(() => {
+    console.log("Navigation in Track: ",navigation.route, route);
+    
+  },[navigation, route])
+
 
   const handleEdit = (stepNumber: number) => {
     setEditingStep(stepNumber)
@@ -217,7 +214,9 @@ const CounsellingForm = () => {
               {steps.map((step, index) => (
                 <CounsellingStep 
                   key={step.number}
-                  step={step}
+                  step={{
+                    ...step
+                  }}
                   onEdit={() => handleEdit(step.number)}
                   onSave={handleSave}
                   stepData={stepsData[step.number]}

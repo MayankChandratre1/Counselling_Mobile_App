@@ -12,7 +12,7 @@ import {
   RefreshControl,
   ActivityIndicator
 } from 'react-native'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { clearUserData, getUserData, logout } from '../utils/storage'
 import UpdateSlider from "../components/Home/UpdateSlider"
 import FontAwesome from "react-native-vector-icons/FontAwesome"
@@ -24,6 +24,7 @@ import CustomText from '../components/General/CustomText'
 import EventCard from '../components/Events/EventCard'
 import { OneSignal } from 'react-native-onesignal'
 import { useEventsContext } from '../contexts/EventsContext'
+import RecommendedCollegeCard from '../components/Colleges/RecommendedCollegeCard'
 
 const { width } = Dimensions.get('window');
 
@@ -99,6 +100,130 @@ const Home: React.FC<NavigationProps> = ({ navigation }) => {
     }
   };
 
+
+  const CollegesSection = () => {
+    const [scrollPosition, setScrollPosition] = useState<number>(0);
+    const [contentWidth, setContentWidth] = useState<number>(0);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const containerWidth = width * 0.9;
+    
+    const handleScroll = (event: any) => {
+      const position = event.nativeEvent.contentOffset.x;
+      setScrollPosition(position);
+    };
+    
+    const handleContentSizeChange = (width: number) => {
+      setContentWidth(width);
+    };
+    
+    const scrollForward = () => {
+      if (scrollViewRef.current) {
+        const newPosition = Math.min(scrollPosition + containerWidth, contentWidth - containerWidth);
+        scrollViewRef.current.scrollTo({ x: newPosition, animated: true });
+      }
+    };
+    
+    const scrollBackward = () => {
+      if (scrollViewRef.current) {
+        const newPosition = Math.max(scrollPosition - containerWidth, 0);
+        scrollViewRef.current.scrollTo({ x: newPosition, animated: true });
+      }
+    };
+    
+    const hasMoreToRight = scrollPosition < contentWidth - containerWidth - 50;
+    const hasMoreToLeft = scrollPosition > 10;
+    
+    return (
+      <View style={styles.collegesContainer}>
+        <View style={styles.sectionHeader}>
+          <CustomText style={styles.sectionTitle}>Browse Colleges</CustomText>
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={() => navigation.navigate('Browse')}
+          >
+            <CustomText style={styles.viewAllText}>View All</CustomText>
+            <MaterialIcons name="arrow-forward" size={16} color="#371981" />
+          </TouchableOpacity>
+        </View>
+        
+        {dataLoading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#371981" />
+          </View>
+        ) : recommendedColleges.length > 0 ? (
+          <View style={styles.collegesScrollWrapper}>
+            {hasMoreToLeft && (
+              <TouchableOpacity 
+                style={[styles.scrollButton, styles.scrollButtonLeft]} 
+                onPress={scrollBackward}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="chevron-left" size={24} color="#371981" />
+              </TouchableOpacity>
+            )}
+            
+            <ScrollView 
+              ref={scrollViewRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.collegesScrollContainer}
+              onScroll={handleScroll}
+              onContentSizeChange={(width) => handleContentSizeChange(width)}
+              scrollEventThrottle={16}
+            >
+              {recommendedColleges.map(college => (
+                <View key={college.id} style={styles.collegeCardWrapper}>
+                  <RecommendedCollegeCard 
+                    college={college}
+                    hideFav
+                    onPress={() => navigation.navigate('CollegeDetails', { collegeId: college.id })}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+            
+            {hasMoreToRight && (
+              <TouchableOpacity 
+                style={[styles.scrollButton, styles.scrollButtonRight]} 
+                onPress={scrollForward}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="chevron-right" size={24} color="#371981" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <CustomText style={styles.emptyText}>No recommended colleges available</CustomText>
+          </View>
+        )}
+        
+        {recommendedColleges.length > 0 && (
+          <View style={styles.dotsContainer}>
+            {recommendedColleges.length > 1 && (
+              <View style={styles.paginationDots}>
+                {Array.from({ length: recommendedColleges.length }, (_, index) => {
+                  const isActive = 
+                    scrollPosition >= index * containerWidth - containerWidth / 2 && 
+                    scrollPosition < (index + 1) * containerWidth - containerWidth / 2;
+                  return (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.paginationDot, 
+                        isActive && styles.paginationDotActive
+                      ]} 
+                    />
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
@@ -141,7 +266,7 @@ const Home: React.FC<NavigationProps> = ({ navigation }) => {
                 <MaterialIcons name="campaign" size={22} color="#fff" />
             </View>
             <CustomText style={styles.updateText}>
-                See newest videos on Yash Aaradhey YouTube Channel
+                See newest videos on Yash Aradhye YouTube Channel
             </CustomText>
             <MaterialIcons name="chevron-right" size={22} color="#fff" />
         </TouchableOpacity>
@@ -172,7 +297,7 @@ const Home: React.FC<NavigationProps> = ({ navigation }) => {
                 
                 <TouchableOpacity 
                     style={styles.mainNavItem}
-                    onPress={() => navigation.navigate('AboutSarathi')}
+                    onPress={() => navigation.navigate('Colleges')}
                 >
                     <View style={[styles.iconCircle, { backgroundColor: '#f0e6ff' }]}>
                         <MaterialIcons name="info-outline" size={26} color="#6600cc" />
@@ -240,44 +365,7 @@ const Home: React.FC<NavigationProps> = ({ navigation }) => {
         </View>
 
         {/* Recommended Colleges Section */}
-        <View style={styles.collegesContainer}>
-          <View style={styles.sectionHeader}>
-            <CustomText style={styles.sectionTitle}>Browse Colleges</CustomText>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate('Browse')}
-            >
-              <CustomText style={styles.viewAllText}>View All</CustomText>
-              <MaterialIcons name="arrow-forward" size={16} color="#371981" />
-            </TouchableOpacity>
-          </View>
-          
-          {dataLoading && !refreshing ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#371981" />
-            </View>
-          ) : recommendedColleges.length > 0 ? (
-            <ScrollView 
-               horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.collegesScrollContainer}
-            >
-              {recommendedColleges.map(college => (
-                <View key={college.id} style={styles.collegeCardWrapper}>
-                  <CollegeCard 
-                    college={college}
-                    hideFav
-                    onPress={() => navigation.navigate('CollegeDetails', { collegeId: college.id })}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <CustomText style={styles.emptyText}>No recommended colleges available</CustomText>
-            </View>
-          )}
-        </View>
+          <CollegesSection />
 
         {/* Account Section */}
         <View style={styles.accountSection}>
@@ -371,10 +459,10 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'space-between',
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowRadius: 20,
+      elevation: 15,
   },
   updateIconContainer: {
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -398,10 +486,10 @@ const styles = StyleSheet.create({
       borderRadius: 12,
       marginBottom: 15,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowRadius: 20,
+      elevation: 15,
   },
   sectionTitle: {
       fontSize: 18,
@@ -465,10 +553,10 @@ const styles = StyleSheet.create({
       borderRadius: 12,
       marginBottom: 15,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowRadius: 20,
+      elevation: 15,
   },
   collegesContainer: {
       padding: 15,
@@ -477,20 +565,16 @@ const styles = StyleSheet.create({
       borderRadius: 12,
       marginBottom: 15,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-      width: width * 0.9,
+      shadowRadius: 20,
+      elevation: 15,
+      // width: width * 0.92,
   },
   collegesScrollContainer: {
       paddingBottom: 10,
       paddingRight: 10,
      
-  },
-  collegeCardWrapper: {
-      width:width * 0.9,
-      marginRight: 10,
   },
   accountSection: {
       padding: 15,
@@ -499,10 +583,10 @@ const styles = StyleSheet.create({
       borderRadius: 12,
       marginBottom: 15,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowRadius: 20,
+      elevation: 15,
   },
   accountOption: {
       flexDirection: 'row',
@@ -540,5 +624,58 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     textAlign: 'center',
+  },
+  collegesScrollWrapper: {
+    position: 'relative',
+    width: '100%',
+  },
+  scrollButton: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    top: '50%',
+    marginTop: -20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  scrollButtonLeft: {
+    left: -5,
+  },
+  scrollButtonRight: {
+    right: -5,
+  },
+  dotsContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  paginationDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#371981',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  collegeCardWrapper: {
+    width: width * 0.9,
+    marginRight: 10,
   },
 });

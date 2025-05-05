@@ -1,9 +1,11 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Dimensions, Animated, Platform, ActivityIndicator } from 'react-native'
+import { StyleSheet, View, ScrollView, TouchableOpacity, Modal, Dimensions, Animated, Platform, ActivityIndicator, Alert } from 'react-native'
 import React, { useState, useEffect, useRef } from 'react'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import CustomText from '../General/CustomText'
 import config from '../../configs/API'
+import { useNavigation } from '@react-navigation/native'
+import { usePremiumPlan } from '../../contexts/PremiumPlanContext'
 const { USER_API } = config
 
 
@@ -158,9 +160,8 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
   const [showAll, setShowAll] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { plans, error, loading} = usePremiumPlan()
+  const navigation = useNavigation<any>()
 
   // Get responsive modal height based on screen size
   const getModalHeight = () => {
@@ -174,32 +175,32 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
   };
 
   // Fetch plans from API
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        setLoading(true);
-        //use fetch from your api endpoint to get the plans
-        const response = await fetch(`${USER_API}/get-premium-plans`); // Replace with your API endpoint
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data: PlansResponse = await response.json();
-        console.log('Fetched plans:', data.plans);
+  // useEffect(() => {
+  //   const fetchPlans = async () => {
+  //     try {
+  //       setLoading(true);
+  //       //use fetch from your api endpoint to get the plans
+  //       const response = await fetch(`${USER_API}/get-premium-plans`); // Replace with your API endpoint
+  //       if (!response.ok) {
+  //         throw new Error('Network response was not ok');
+  //       }
+  //       const data: PlansResponse = await response.json();
+  //       console.log('Fetched plans:', data.plans);
         
-        setPlans(data.plans);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching plans:', err);
-        setError('Failed to load plans. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  //       setPlans(data.plans);
+  //       setError(null);
+  //     } catch (err) {
+  //       console.error('Error fetching plans:', err);
+  //       setError('Failed to load plans. Please try again later.');
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    if (visible) {
-      fetchPlans();
-    }
-  }, [visible]);
+  //   if (visible) {
+  //     fetchPlans();
+  //   }
+  // }, [visible]);
 
   // Animation effect
   useEffect(() => {
@@ -237,7 +238,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
     if (plans.length > 0) {
       return [...new Set(plans.flatMap(plan => plan.benefits))];
     }
-    return features;
+    return [];
   };
 
   return (
@@ -306,7 +307,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
                 accessible={true}
                 accessibilityLabel="Plan options"
               >
-                {plans.length > 0 ? (
+                {(plans.length > 0) ? (
                   plans.map((plan, index) => (
                     <PlanCard 
                       key={index}
@@ -321,27 +322,42 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
                   ))
                 ) : (
                   <>
-                    <PlanCard 
-                      title="Premium" 
-                      price="499" 
-                      features={features} 
-                      isPremium={false}
-                      onGetStarted={onUpgrade}
-                    />
-                    <PlanCard 
-                      title="Counselling" 
-                      price="6,999" 
-                      features={features} 
-                      isPremium={true}
-                      onGetStarted={onUpgrade}
-                    />
+                    <View style={[{
+                      height:"100%",
+                      alignItems:"center",
+                      justifyContent:"center",
+                      width: CARD_WIDTH*1.2,
+                    }]}>
+                      <CustomText style={[styles.title,{
+                        textAlign:"center",
+                        marginBottom: 10,
+                        color:"#ddd"
+                      }]}>
+                        Stay tuned for more plans coming soon!
+                      </CustomText>
+                      <TouchableOpacity 
+                        style={[styles.button, styles.standardButton, {borderRadius:5}]}
+                        onPress={() => {
+                          navigation.navigate({
+                            name: 'Home',
+                          })
+                        }}
+                        accessible={true}
+                        accessibilityLabel="More plans coming soon"
+                        accessibilityRole="button"
+                      >
+                        <CustomText style={[styles.buttonText, {fontSize: 14}]}>
+                          Explore Other Features
+                        </CustomText>
+                      </TouchableOpacity>
+                    </View>
                   </>
                 )}
               </ScrollView>
             )}
           </View>
 
-          <TouchableOpacity 
+          {/* <TouchableOpacity 
             style={styles.showFeaturesButton} 
             onPress={() => setShowAll(!showAll)}
             accessible={true}
@@ -356,7 +372,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
               size={18} 
               color="#371981" 
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {showAll && (
             <ScrollView 
@@ -379,7 +395,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
               ))}
             </ScrollView>
           )}
-          
+{/*           
           <TouchableOpacity 
             style={styles.skipButton} 
             onPress={onClose}
@@ -388,7 +404,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
             accessibilityRole="button"
           >
             <CustomText style={styles.skipButtonText}>Continue with Free Plan</CustomText>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </Animated.View>
       </View>
     </Modal>
@@ -441,11 +457,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: SCREEN_WIDTH < 360 ? 12 : 16,
     marginHorizontal: CARD_MARGIN,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowColor: '#00000099',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 20,
+    elevation: 10,
     borderWidth: 1,
     borderColor: '#f0f0f0',
     // Ensure cards have a reasonable height constraint

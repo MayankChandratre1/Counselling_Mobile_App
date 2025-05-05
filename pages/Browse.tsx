@@ -7,7 +7,7 @@ import { CollegeProvider } from '../contexts/CollegeContext'
 const Browse = ({navigation}:any) => {
   return (
     <View style={styles.container}>
-      <TopBar heading='Search Colleges' />
+      <TopBar heading='Browse Colleges' />
       <CollegeProvider>
         <CollegeList navigation={navigation} />
       </CollegeProvider>

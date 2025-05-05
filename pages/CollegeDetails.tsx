@@ -69,19 +69,6 @@ const CollegeDetails = () => {
     const fetchCutoffs = async () => {
       try {
         setLoading(true);
-        if(false){
-          const response = await fetch(`${COLLEGE_API}/cutoffs/institute/${college?.instituteCode}`);
-        
-          if (!response.ok) {
-            throw new Error('Failed to fetch cutoffs');
-          }
-          
-          const data = await response.json();
-          console.log("Cutoffs");
-          console.log(data);
-          
-          setCutoffs(data.data);
-        }
         let cutoffsData:any = []
 
         if(college.branches){
@@ -160,6 +147,13 @@ const CollegeDetails = () => {
     }
   };
 
+  const normaliseInstituteCode = (code:string)=>{
+    if(code.length < 5){
+      return code.padStart(5, '0');
+    }
+    return code;
+  }
+
   // Show loading state if either context or component is loading
   if (loading || contextLoading) {
     return (
@@ -198,7 +192,7 @@ const CollegeDetails = () => {
         }}>
           <View style={{alignItems: "flex-start"}}>
             <Text style={styles.instuteCode}>
-              {college.instituteCode}
+              {normaliseInstituteCode(college?.instituteCode.toString() || "")}
             </Text>
             <Text style={styles.description}>
               Institute code

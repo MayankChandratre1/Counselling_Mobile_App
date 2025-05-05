@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
+    borderRadius: 5,
     backgroundColor: '#fff',
     justifyContent: 'center',
     paddingHorizontal: 5,
@@ -450,8 +450,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f0ff',
+    
     justifyContent: 'center',
     alignItems: 'center',
   },

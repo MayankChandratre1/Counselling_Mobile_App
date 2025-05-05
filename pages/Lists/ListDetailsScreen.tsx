@@ -76,7 +76,7 @@ const ListDetailsScreen = () => {
       ) : (
         <View style={styles.contentContainer}>
           <View style={styles.headerContainer}>
-            <View style={styles.titleRow}>
+            {/* <View style={styles.titleRow}>
               <View style={styles.iconContainer}>
                 <MaterialIcons name="format-list-bulleted" size={24} color="#fff" />
               </View>
@@ -86,7 +86,7 @@ const ListDetailsScreen = () => {
                   Updated on {formattedDate}
                 </CustomText>
               </View>
-            </View>
+            </View> */}
             
             {userData && (
               <View style={styles.userInfoContainer}>
@@ -106,7 +106,7 @@ const ListDetailsScreen = () => {
               </View>
             )}
             
-            <View style={styles.statsContainer}>
+            <View style={[styles.statsContainer]}>
             {userData?.counsellingData.cetMarks && (
                 <View style={styles.statItem}>
                   <CustomText style={styles.statLabel}>CET</CustomText>
@@ -120,14 +120,14 @@ const ListDetailsScreen = () => {
                   </CustomText>
                 </View>
               )}
-              <View style={styles.statItem}>
+              <View style={[styles.statItem,{flex:1,justifyContent:'flex-end',  marginRight:0}]}>
                 <MaterialIcons name="school" size={20} color="#371981" />
-                <CustomText style={styles.statValue}>
+                <CustomText style={[styles.statValue, { margin:0, padding:0 }]}>
                   {list.colleges.length}
                 </CustomText>
-                <CustomText style={styles.statLabel}>
+                {/* <CustomText style={styles.statLabel}>
                   {list.colleges.length === 1 ? 'College' : 'Colleges'}
-                </CustomText>
+                </CustomText> */}
               </View>
               
               
