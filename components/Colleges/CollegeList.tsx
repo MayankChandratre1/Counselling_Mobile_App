@@ -1,5 +1,5 @@
 import { StyleSheet, View, FlatList, ActivityIndicator, Text, TextInput, TouchableOpacity, Modal, ScrollView, Dimensions, Platform, SafeAreaView, StatusBar } from 'react-native'
-import React, { useEffect, useState, useCallback, memo } from 'react'
+import React, { useEffect, useState, useCallback, memo, useMemo, useRef } from 'react'
 import CollegeCard from './CollegeCard'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { cities } from '../../data/cities'
@@ -21,6 +21,7 @@ interface FilterOptions {
 }
 
 const { width } = Dimensions.get('window');
+const PAGE_SIZE = 10;
 
 const MemoizedCollegeCard = memo(({ college, onPress }: { college: College; onPress: () => void }) => (
   <CollegeCard college={college} onPress={onPress} />
@@ -65,23 +66,36 @@ const CollegeList = ({ navigation }: any) => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [lastDocId, setLastDocId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [displayedColleges, setDisplayedColleges] = useState<College[]>([]);
   
+  // Store filtered/searched results before pagination
+  const [filteredResults, setFilteredResults] = useState<College[]>([]);
+  
   // Filter related states
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ city: '', branch: '', status: '' });
   const [availableCities] = useState<string[]>(cities);
-  const [availableBranches, setAvailableBranches] = useState<string[]>([]);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
   
   // New states for city selection
   const [citySearchQuery, setCitySearchQuery] = useState('');
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [filteredCities, setFilteredCities] = useState<string[]>(cities);
+
+  // Refs to keep track of current state in callbacks
+  const searchQueryRef = useRef(searchQuery);
+  const filtersRef = useRef(filters);
+  const isSearchModeRef = useRef(isSearchMode);
+
+  // Update refs when state changes
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+    filtersRef.current = filters;
+    isSearchModeRef.current = isSearchMode;
+  }, [searchQuery, filters, isSearchMode]);
 
   useEffect(() => {
     // Update local loading state based on context
@@ -91,20 +105,30 @@ const CollegeList = ({ navigation }: any) => {
     }
   }, [isLoading, contextError]);
   
+  // Update pagination based on filtered results
   useEffect(() => {
-    // Update displayed colleges based on context data
-    if (colleges.length > 0) {
-      const pageSize = 10;
+    if (filteredResults.length > 0) {
       const startIndex = 0;
-      const endIndex = page * pageSize;
-      const paginatedColleges = colleges.slice(startIndex, endIndex);
+      const endIndex = page * PAGE_SIZE;
+      const paginatedColleges = filteredResults.slice(startIndex, endIndex);
       
       setDisplayedColleges(paginatedColleges);
-      setHasMore(colleges.length > endIndex);
-      setLoading(false);
-      setRefreshing(false);
+      setHasMore(filteredResults.length > endIndex);
+    } else {
+      setDisplayedColleges([]);
+      setHasMore(false);
     }
-  }, [colleges, page]);
+    
+    setLoading(false);
+    setRefreshing(false);
+  }, [filteredResults, page]);
+
+  // Initial setup of colleges when context data changes
+  useEffect(() => {
+    if (colleges.length > 0 && !isSearchMode && !filters.city && !filters.status) {
+      setFilteredResults(colleges);
+    }
+  }, [colleges]);
 
   // Filter cities based on search query
   useEffect(() => {
@@ -118,104 +142,112 @@ const CollegeList = ({ navigation }: any) => {
     }
   }, [citySearchQuery]);
 
-  const handleSearch = useCallback((pageNumber: number = 1, applyingFilters: boolean = false) => {
-    setLoading(true);
-    
-    if (!applyingFilters && !searchQuery.trim()) {
-      setIsSearchMode(false);
-      setPage(1);
-      setDisplayedColleges(colleges.slice(0, 10));
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      // Use context searchColleges function
-      let results = searchColleges(searchQuery);
-      
-      // Apply filters if present
-      if (filters.city || filters.status) {
-        const filterOptions: { city?: string; status?: string } = {};
-        if (filters.city) filterOptions.city = filters.city;
-        if (filters.status) filterOptions.status = filters.status;
-        
-        results = filterColleges(filterOptions).filter(college => 
-          college.instituteName.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-      
-      setDisplayedColleges(results.slice(0, pageNumber * 5));
-      setHasMore(results.length > pageNumber * 5);
-      setIsSearchMode(true);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to search colleges');
-      setLoading(false);
-    }
-  }, [searchQuery, filters, colleges, searchColleges, filterColleges]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setPage(1);
-    setLastDocId(null);
-    
-    try {
-      await refreshColleges();
-      if (isSearchMode) {
-        handleSearch(1);
-      }
-    } catch (err) {
-      console.error('Error refreshing data:', err);
-      setError('Failed to refresh colleges');
-    }
-  }, [isSearchMode, refreshColleges, handleSearch]);
-
+  // Count active filters
   useEffect(() => {
-    // Initial data fetch handled by context
-  }, []);
-
-  useEffect(() => {
-    // Count active filters
     let count = 0;
     if (filters.city) count++;
     if (filters.branch) count++;
     if (filters.status) count++;
     setActiveFiltersCount(count);
+    
+    // Auto-apply filters when they change
+    if (isSearchModeRef.current || count > 0) {
+      applySearchAndFilters();
+    }
   }, [filters]);
+
+  // Combined function to apply both search and filters
+  const applySearchAndFilters = useCallback(() => {
+    setLoading(true);
+    
+    try {
+      // Start with all colleges or search results
+      let results = colleges;
+      
+      // Apply search if there's a query
+      if (searchQueryRef.current.trim()) {
+        results = searchColleges(searchQueryRef.current);
+        setIsSearchMode(true);
+      } else if (filtersRef.current.city || filtersRef.current.status) {
+        // Keep search mode active if filters are applied
+        setIsSearchMode(true);
+      } else {
+        setIsSearchMode(false);
+      }
+      
+      // Apply filters if present
+      if (filtersRef.current.city || filtersRef.current.status) {
+        const filterOptions: { city?: string; status?: string } = {};
+        if (filtersRef.current.city) filterOptions.city = filtersRef.current.city;
+        if (filtersRef.current.status && filtersRef.current.status !== 'All') {
+          filterOptions.status = filtersRef.current.status;
+        }
+        
+        // If we already have search results, filter them
+        if (searchQueryRef.current.trim()) {
+          results = results.filter(college => {
+            let matches = true;
+            if (filterOptions.city) {
+              matches = matches && college.city === filterOptions.city;
+            }
+            if (filterOptions.status) {
+              // Check if status exists in additionalMetadata
+              matches = matches && college.additionalMetadata?.status === filterOptions.status;
+            }
+            return matches;
+          });
+        } else {
+          // Otherwise get filtered results from context
+          results = filterColleges(filterOptions);
+        }
+      }
+      setLoading(false);
+      
+      // Reset pagination when applying new search/filters
+      setPage(1);
+      setFilteredResults(results);
+      
+    } catch (err) {
+      console.error('Error applying search and filters:', err);
+      setError('Failed to search or filter colleges');
+      setLoading(false);
+    }
+  }, [colleges, searchColleges, filterColleges]);
+
+  const handleSearch = useCallback(() => {
+    applySearchAndFilters();
+  }, [applySearchAndFilters]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setPage(1);
+    
+    try {
+      await refreshColleges();
+      // Re-apply search and filters after refresh
+      applySearchAndFilters();
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+      setError('Failed to refresh colleges');
+      setRefreshing(false);
+    }
+  }, [refreshColleges, applySearchAndFilters]);
 
   const applyFilters = useCallback(() => {
     setFilterModalVisible(false);
-    setPage(1);
-    setLastDocId(null);
-    
-    try {
-      const filterOptions: { city?: string; status?: string } = {};
-      if (filters.city) filterOptions.city = filters.city;
-      if (filters.status) filterOptions.status = filters.status;
-      
-      let results = filterColleges(filterOptions);
-      
-      // Apply search query if in search mode
-      if (isSearchMode && searchQuery) {
-        results = results.filter(college => 
-          college.instituteName.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-      
-      setDisplayedColleges(results.slice(0, 10));
-      setHasMore(results.length > 10);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to apply filters');
-      setLoading(false);
-    }
-  }, [filters, filterColleges, isSearchMode, searchQuery]);
+    applySearchAndFilters();
+  }, [applySearchAndFilters]);
 
   const clearFilters = useCallback(() => {
     setFilters({ city: '', branch: '', status: '' });
-  }, []);
+    // If we have a search query, just search without filters
+    if (searchQueryRef.current.trim()) {
+      setIsSearchMode(true);
+    } else {
+      setIsSearchMode(false);
+      setFilteredResults(colleges);
+    }
+  }, [colleges]);
 
   const selectCity = useCallback((city: string) => {
     setCityModalVisible(false);
@@ -228,10 +260,22 @@ const CollegeList = ({ navigation }: any) => {
   const loadMore = () => {
     if (!loading && hasMore) {
       console.log("Loading more colleges...");
-      const nextPage = page + 1;
-      setPage(nextPage);
+      setPage(prevPage => prevPage + 1);
     }
   };
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    if (activeFiltersCount > 0) {
+      // If filters are active, just clear the search
+      applySearchAndFilters();
+    } else {
+      // If no filters, reset to showing all colleges
+      setIsSearchMode(false);
+      setFilteredResults(colleges);
+      setPage(1);
+    }
+  }, [activeFiltersCount, colleges, applySearchAndFilters]);
 
   const renderFooter = () => {
     if (!loading || refreshing) return null;
@@ -296,6 +340,8 @@ const CollegeList = ({ navigation }: any) => {
             try {
               await refreshColleges();
               setPage(1);
+              setIsSearchMode(false);
+              setFilters({ city: '', branch: '', status: '' });
             } catch (err) {
               setError('Failed to fetch colleges');
             }
@@ -313,25 +359,26 @@ const CollegeList = ({ navigation }: any) => {
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <View style={styles.searchContainer}>
-            <TextInput
-              style={[styles.searchInput, {color: '#371981'}]}
-              placeholderTextColor={'#37198166'}
-              placeholder="Search"
-              value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                if (text.length === 0) {
-                  setIsSearchMode(false);
-                  setPage(1);
-                  setDisplayedColleges(colleges.slice(0, 10));
-                }
-              }}
-            />
+            <View style={styles.searchInputContainer}>
+              <TextInput
+                style={[styles.searchInput, {color: '#371981'}]}
+                placeholderTextColor={'#37198166'}
+                placeholder="Search"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearch}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity 
+                  onPress={handleClearSearch}
+                  style={styles.clearSearchButton}
+                >
+                  <Icon name="close" size={18} color="#888" />
+                </TouchableOpacity>
+              )}
+            </View>
             <TouchableOpacity 
-              onPress={() => {
-                setPage(1);
-                handleSearch(1);
-              }} 
+              onPress={handleSearch}
               style={styles.iconButton}
             >
               <Icon name="magnify" size={22} color="#371981" />
@@ -522,7 +569,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-
   },
   headerContainer: {
     backgroundColor: '#fff',
@@ -536,6 +582,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
   },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
   searchInput: {
     flex: 1,
     height: 44,
@@ -543,9 +595,15 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     borderRadius: 8,
     paddingHorizontal: 12,
+    paddingRight: 35, // Space for clear button
     marginRight: 8,
     backgroundColor: '#f9f9f9',
     fontSize: 15,
+  },
+  clearSearchButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 6,
   },
   iconButton: {
     padding: 10,

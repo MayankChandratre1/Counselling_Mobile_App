@@ -222,9 +222,8 @@ export class CollegeDataManager {
       }
       
       // Check in keywords
-      if (college.keywords && college.keywords.some(keyword => 
-        keyword.toLowerCase().includes(normalizedQuery)
-      )) {
+      if (college.keywords && college.keywords.includes(normalizedQuery)
+      ) {
         return true;
       }
       
