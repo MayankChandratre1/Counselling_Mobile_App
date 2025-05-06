@@ -21,7 +21,7 @@ interface FilterOptions {
 }
 
 const { width } = Dimensions.get('window');
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const MemoizedCollegeCard = memo(({ college, onPress }: { college: College; onPress: () => void }) => (
   <CollegeCard college={college} onPress={onPress} />
@@ -226,6 +226,7 @@ const CollegeList = ({ navigation }: any) => {
       await refreshColleges();
       // Re-apply search and filters after refresh
       applySearchAndFilters();
+      setRefreshing(false);
     } catch (err) {
       console.error('Error refreshing data:', err);
       setError('Failed to refresh colleges');
@@ -320,7 +321,7 @@ const CollegeList = ({ navigation }: any) => {
     </TouchableOpacity>
   ), [filters.city, selectCity]);
 
-  if (loading && page === 1 && !refreshing) {
+  if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#371981" />
@@ -417,6 +418,7 @@ const CollegeList = ({ navigation }: any) => {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           initialNumToRender={5}
+          
           ListFooterComponent={renderFooter}
           ListEmptyComponent={renderEmptyList}
           contentContainerStyle={[

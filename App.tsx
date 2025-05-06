@@ -30,6 +30,8 @@ import ContactPage from './components/Contact/ContactPage';
 import { ContactProvider } from './contexts/ContactContext';
 import Counselling from './pages/Counselling';
 import ContactButton from './components/Contact/ContactButton';
+import DynamicContentScreen from './pages/DynamicTabScreen';
+import { DynamicTabProvider } from './contexts/DynamicTabContext';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -63,6 +65,7 @@ type RootStackParamList = {
   Contact: undefined;
   Tab: {
     isPremium: boolean;};
+  DynamicContentScreen: any
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -301,6 +304,7 @@ const App = () => {
     <NavigationContainer>
       <CollegeProvider>
         <EventsProvider>
+          <DynamicTabProvider>
           <ContactProvider>
 
           <PremiumPlanProvider>
@@ -347,6 +351,7 @@ const App = () => {
                   <Stack.Screen name="Favourites" component={Favourites} />
                   <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
                   <Stack.Screen name="Contact" component={ContactPage} />
+                  <Stack.Screen name="DynamicContentScreen" component={DynamicContentScreen} />
 
               </Stack.Navigator>
               {isLoggedIn && !isPremium && <PremiumButton />}
@@ -355,6 +360,7 @@ const App = () => {
 
           </PremiumPlanProvider>
           </ContactProvider>
+          </DynamicTabProvider>
         </EventsProvider>
       </CollegeProvider>
     </NavigationContainer>

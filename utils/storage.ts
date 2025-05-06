@@ -1,6 +1,7 @@
 import { secureRequest, RequestMethod } from './tokenedRequest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../configs/API';
+import { is } from 'date-fns/locale';
 
 interface UserData {
   name: string;
@@ -144,6 +145,17 @@ export const logout = async (userId:string) => {
     return false;
   }
 };
+
+
+export const getPremiumStatus = async () => {
+  try{
+    const data = await getUserData()
+    return {isPremium: data?.isPremium, counsellingData: data?.counsellingData}
+  } catch (error) {
+    console.error('Error getting premium status:', error);
+    return {isPremium: false, counsellingData: null};
+  }
+}
 
 
 export const keys = {

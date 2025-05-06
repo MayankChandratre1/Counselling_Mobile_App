@@ -50,7 +50,7 @@ const StackNavigationPremium = ({ planType }: PremiumStackProps) => {
       <Stack.Screen name="MyPlan" component={MyPlan} />
 
       {/* Conditional Counselling Screens */}
-      {planType === 'Counselling' && (
+      {planType != 'Free' && (
         <>
           <Stack.Screen name="MyLists" component={MyLists} />
           <Stack.Screen name="CollegePredictor" component={CollegePredictor} />

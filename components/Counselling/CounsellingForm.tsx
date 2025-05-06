@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View, ScrollView, Dimensions, SafeAreaView } from 'react-native'
+import { Pressable, StyleSheet, View, ScrollView, Dimensions, SafeAreaView, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState, useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Icon from 'react-native-vector-icons/FontAwesome6'
@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native'
 import TopBar from '../General/TopBar'
 import CustomText from '../General/CustomText'
 import { useFocusEffect } from '@react-navigation/native'
+import { usePremiumPlan } from '../../contexts/PremiumPlanContext'
 
 // Get screen dimensions for responsive sizing
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -31,11 +32,9 @@ const CounsellingForm = ({route}:any) => {
   const [editingStep, setEditingStep] = useState<number | null>(null)
   const [stepsData, setStepsData] = useState<{[key: number]: {status: 'Yes' | 'No', remark: string, verdict?: string}}>({})
   const [refreshing, setRefreshing] = useState<boolean>(false)
+  const {premiumPlan} = usePremiumPlan()
 
-  useEffect(() => {
-    console.log("Navigation in Track: ",navigation.route, route);
-    
-  },[navigation, route])
+ 
 
 
   const handleEdit = (stepNumber: number) => {
@@ -88,7 +87,7 @@ const CounsellingForm = ({route}:any) => {
       
       const userData = await getUserData()
       
-      const updateResponse = await secureRequest(`${config.USER_API}/formdata/${userData.phone}/elite-1234567`, RequestMethod.POST, {
+      const updateResponse = await secureRequest(`${config.USER_API}/formdata/${userData.phone}/${premiumPlan?.plan?.form}`, RequestMethod.POST, {
         body: {
           steps: allStepsData
         }
@@ -108,7 +107,8 @@ const CounsellingForm = ({route}:any) => {
       setLoading(true)
       setError(null)
       const user = await getUserData()
-      const response: any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/elite-1234567`, RequestMethod.GET)
+      
+      const response: any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/${premiumPlan?.plan?.form ?? "Sarathi-Online"}`, RequestMethod.GET)
       
       if (response.data?.steps) {
         setStepsData(response.data.steps.reduce((acc: any, step: any) => {
@@ -154,12 +154,17 @@ const CounsellingForm = ({route}:any) => {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Icon name="clipboard-list" size={64} color="#ccc" />
-      <CustomText style={styles.emptyStateText}>
-        {error || 'No steps available'}
-      </CustomText>
+      <CustomText style={styles.emptyStateText}>No steps available</CustomText>
       <Pressable style={styles.retryButton} onPress={fetchSteps}>
         <CustomText style={styles.retryButtonText}>Retry</CustomText>
       </Pressable>
+    </View>
+  )
+
+  const renderLoadingState = () => (
+    <View style={styles.emptyState}>
+      <ActivityIndicator size="large" color="#613EEA" />
+      <CustomText style={styles.emptyStateText}>Loading...</CustomText>
     </View>
   )
 
@@ -198,7 +203,12 @@ const CounsellingForm = ({route}:any) => {
           </View>
         </View>
 
-        <ScrollView 
+        {
+          loading && renderLoadingState()
+
+        }
+
+     { !loading &&  <ScrollView 
           style={styles.scrollContainer}
           contentContainerStyle={[
             styles.scrollContent,
@@ -232,7 +242,7 @@ const CounsellingForm = ({route}:any) => {
               ))}  
             </View>
           )}
-        </ScrollView>
+        </ScrollView>}
       </View>
     </SafeAreaView>
   )

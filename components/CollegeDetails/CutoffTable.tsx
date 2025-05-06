@@ -31,6 +31,7 @@ const CutoffTable = ({cutoffs}: {
           <Icon name="alert-circle-outline" size={48} color="#999" />
           <CustomText style={styles.emptyCutoffsText}>
             No cutoff data available for this selection
+            Try changing the filters or year.
           </CustomText>
         </View>
       );

@@ -11,7 +11,7 @@ const COLLEGES_LAST_FETCH_KEY = 'colleges_last_fetch';
 // Types
 export interface College {
   id: string;
-  instituteCode: number;
+  instituteCode: string;
   instituteName: string;
   city: string;
   keywords: string[];
@@ -209,32 +209,35 @@ export class CollegeDataManager {
   searchColleges(query: string): College[] {
     const normalizedQuery = query.toLowerCase().trim();
     if (!normalizedQuery) return [];
-    
-    return this.colleges.filter(college => {
-      // Check in name
-      if (college.instituteName.toLowerCase().includes(normalizedQuery)) {
-        return true;
-      }
-      
-      // Check in city
-      if (college.city.toLowerCase().includes(normalizedQuery)) {
-        return true;
-      }
-      
-      // Check in keywords
-      if (college.keywords && college.keywords.includes(normalizedQuery)
-      ) {
-        return true;
-      }
-      
-      // Check in institute code
-      if (college.instituteCode.toString().includes(normalizedQuery) || college.instituteCode.toString().padStart(5,'0').includes(normalizedQuery)) {
-        return true;
-      }
-      
-      return false;
-    });
+  
+    return this.colleges
+      .map(college => {
+        const name = college.instituteName.toLowerCase();
+        const city = college.city.toLowerCase();
+        const code = college.instituteCode.toString();
+        const paddedCode = code.padStart(5, '0');
+        const keywords = college.keywords?.map(k => k.toLowerCase()) || [];
+  
+        let priority = -1;
+  
+        if (keywords.includes(normalizedQuery)) {
+          priority = 0;
+        } else if (name.includes(normalizedQuery)) {
+          priority = 1;
+        } else if (city.includes(normalizedQuery)) {
+          priority = 2;
+        } else if (code.includes(normalizedQuery) || paddedCode.includes(normalizedQuery)) {
+          priority = 3;
+        }
+  
+        return priority >= 0 ? { college, priority } : null;
+      })
+      .filter((x): x is { college: College; priority: number } => !!x)
+      .sort((a, b) => a.priority - b.priority)
+      .map(entry => entry.college);
   }
+  
+  
 
   filterColleges(options: { status?: string; city?: string }): College[] {
     let filteredColleges = [...this.colleges];

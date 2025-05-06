@@ -71,7 +71,7 @@ const UpdateCard: React.FC<UpdateCardProps> = ({ update, onPress }) => {
       </View>
       
       <Text style={styles.cardTitle}>{update.title}</Text>
-      <Text style={styles.cardSubtitle}>{update.subtitle}</Text>
+      <Text style={styles.cardSubtitle}>{update.subtitle.length > 19 ? `${update.subtitle.substring(0,19)}...`:update.subtitle}</Text>
       
       {update.link && (
         <TouchableOpacity 

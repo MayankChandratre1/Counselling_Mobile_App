@@ -25,6 +25,7 @@ interface PlanDetails {
   planTitle: string;
   purchasedDate: PlanTimestamp;
   expiryDate: PlanTimestamp;
+  form: string
 }
 
 interface PremiumPlan {

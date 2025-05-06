@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
-import { getUserPlanData } from '../../utils/storage'
-import TopBar from '../General/TopBar'
-import { useNavigation } from '@react-navigation/native'
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getUserPlanData } from '../../utils/storage';
+import TopBar from '../General/TopBar';
+import { useNavigation } from '@react-navigation/native';
+import { useDynamicTabs, DynamicTabData } from '../../contexts/DynamicTabContext';
 
 interface DashboardCard {
   title: string;
@@ -12,21 +13,51 @@ interface DashboardCard {
   route?: string;
   color: string;
   disabled?: boolean;
+  isDynamic?: boolean;
+  html?: string | null;
+  url?: string | null;
+  isPremiumOnly?: boolean;
 }
 
 const PremiumDashboard = () => {
   const navigation = useNavigation<any>();
   const [planTitle, setPlanTitle] = useState('');
+  
+  // Use the dynamic tabs hook with isPremium=true
+  const { tabs: dynamicTabs, loading, error, refreshTabs } = useDynamicTabs(true);
 
   useEffect(() => {
-    const getPlanInfo = async () => {
+    const initialize = async () => {
+      // Get user plan info
       const plan = await getUserPlanData();
-      setPlanTitle(plan?.plan?.planTitle || 'Free');
+      setPlanTitle(plan?.plan?.planTitle || 'Premium');
     };
-    getPlanInfo();
+    
+    initialize();
   }, []);
 
-  const cards: DashboardCard[] = [
+   // Helper function to get icon based on title
+   const getIconForTitle = (title: string): string => {
+    const iconMap: {[key: string]: string} = {
+      'Documents': 'file-document-outline',
+      'Resources': 'book-open-variant',
+      'Guidelines': 'clipboard-text-outline',
+      'News': 'newspaper',
+      'Events': 'calendar',
+      'Videos': 'video',
+    };
+    
+    return iconMap[title] || 'web'; // Default to 'web' icon if title not in map
+  };
+
+  // Helper function to get color based on index
+  const getColorForIndex = (index: number): string => {
+    const colors = ['#613EEA', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#009688', '#E91E63'];
+    return colors[index % colors.length];
+  };
+
+  // Static cards
+  const staticCards: DashboardCard[] = [
     {
       title: 'Current Plan',
       icon: 'crown',
@@ -55,46 +86,93 @@ const PremiumDashboard = () => {
       route: 'MyLists',
       color: '#FF9800',
     },
-    {
-      title: 'Coming soon...',
-      icon: 'chart-bar',
-      description: 'Predict your college chances',
-      route: 'CollegePredictor',
-      color: '#9C27B0',
-      disabled: true,
-    },
-    {
-      title: 'Coming soon...',
-      icon: 'book-open-page-variant',
-      description: 'Access study materials',
-      color: '#F44336',
-      disabled: true,
-    },
   ];
+
+  // Combine static cards with dynamic tabs
+  const allCards = [...staticCards];
+
+  // Add dynamic tabs to cards
+  if (!loading) {
+    dynamicTabs.forEach((tab, index) => {
+      allCards.push({
+        title: tab.title,
+        icon: getIconForTitle(tab.title),
+        description: `Access ${tab.title.toLowerCase()}`,
+        color: getColorForIndex(staticCards.length + index),
+        isDynamic: true,
+        html: tab.html,
+        url: tab.url,  
+      });
+    });
+
+    if(dynamicTabs.length < 2){
+      for(let i = dynamicTabs.length; i < 2; i++){
+        allCards.push({
+          title: 'Coming Soon',
+          icon: 'clock-outline',
+          description: 'More features coming soon!',
+          color: '#9E9E9E',
+          disabled: true,
+        });
+      }
+    }
+  }
+
+  // Function to handle card press
+  const handleCardPress = (card: DashboardCard) => {
+    if (card.isDynamic) {
+      navigation.navigate('DynamicContentScreen', {
+        title: card.title,
+        html: card.html,
+        url: card.url
+      });
+    } else if (card.route) {
+      navigation.navigate(card.route);
+    }
+  };
 
   return (
     <>
       <TopBar heading="Dashboard" />
       <ScrollView style={styles.container}>
         <Text style={styles.welcome}>Welcome to Your Dashboard</Text>
-        <View style={styles.cardsContainer}>
-          {cards.map((card, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.card, { backgroundColor: card.color }, card.disabled && styles.disbaleCard]}
-              onPress={() => card.route && navigation.navigate(card.route)}
-              disabled={!!card.disabled}
-            >
-              <Icon name={card.icon} size={32} color="#fff" />
-              <Text style={styles.cardTitle}>{card.title}</Text>
-              <Text style={styles.cardDescription}>{card.description}</Text>
+        
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#613EEA" />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Icon name="alert-circle-outline" size={48} color="#FF6B6B" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={refreshTabs}>
+              <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.cardsContainer}>
+            {allCards.map((card, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.card, 
+                  { backgroundColor: card.color }, 
+                  card.disabled && styles.disabledCard
+                ]}
+                onPress={() => handleCardPress(card)}
+                disabled={!!card.disabled}
+              >
+                <Icon name={card.icon} size={32} color="#fff" />
+                <Text style={styles.cardTitle}>{card.title}</Text>
+                <Text style={styles.cardDescription}>{card.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -125,7 +203,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  disbaleCard: {
+  disabledCard: {
     opacity: 0.5,
   },
   cardTitle: {
@@ -140,6 +218,32 @@ const styles = StyleSheet.create({
     marginTop: 5,
     opacity: 0.9,
   },
-})
+  loadingContainer: {
+    padding: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 20,
+  },
+  retryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#371981',
+    borderRadius: 20,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+});
 
-export default PremiumDashboard
+export default PremiumDashboard;

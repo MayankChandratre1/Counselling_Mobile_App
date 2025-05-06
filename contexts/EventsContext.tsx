@@ -51,17 +51,17 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
       
-      const response = await secureRequest<HomePageData>(
+      const response = await fetch(
         `${config.USER_API}/gethomepage`,
-        RequestMethod.GET
       );
-      
-      if (response.data) {
-        setEvents(response.data.events || []);
-        setUpdates(response.data.updates || []);
-        setRecommendedColleges(response.data.recommended_colleges || []);
-      } else if (response.error) {
-        setError(response.error);
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data) {
+        setEvents(data.events || []);
+        setUpdates(data.updates || []);
+        setRecommendedColleges(data.recommended_colleges || []);
       }
     } catch (err) {
       console.error('Error fetching home page data:', err);

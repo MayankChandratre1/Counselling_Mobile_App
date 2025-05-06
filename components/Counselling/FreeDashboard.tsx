@@ -7,6 +7,22 @@ import { getUserData, getUserPlanData } from '../../utils/storage';
 import CustomText from '../General/CustomText';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CounsellingCards from './CounsellingCards';
+import { useDynamicTabs } from '../../contexts/DynamicTabContext';
+
+interface DashboardCard {
+  title: string;
+  icon: string;
+  description: string;
+  route?: string;
+  color: string;
+  disabled?: boolean;
+  locked?: boolean;
+  isDynamic?: boolean;
+  html?: string | null;
+  url?: string | null;
+  isPremiumOnly?: boolean;
+  routeParams?: any;
+}
 
 // Get screen dimensions for responsive layout
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -26,6 +42,9 @@ const features = [
 const FreeDashboard = ({ navigation }: any) => {
   const [currentPlan, setCurrentPlan] = useState('Free')
   const [showPlansModal, setShowPlansModal] = useState(false)
+  
+  // Use the dynamic tabs hook with isPremium=false
+  const { tabs: dynamicTabs, loading } = useDynamicTabs(false);
 
   useEffect(() => {
     const checkPlan = async () => {
@@ -44,6 +63,25 @@ const FreeDashboard = ({ navigation }: any) => {
     }
     checkPlan()
   }, [])
+
+  // Helper function to get icon based on title
+  const getIconForTitle = (title: string): string => {
+    const iconMap: {[key: string]: string} = {
+      'Documents': 'file-document-outline',
+      'Resources': 'book-open-variant',
+      'Guidelines': 'clipboard-text-outline',
+      'News': 'newspaper',
+      'Events': 'calendar',
+      'Videos': 'video',
+    };
+    return iconMap[title] || 'web';
+  };
+
+  // Helper function to get color based on index
+  const getColorForIndex = (index: number): string => {
+    const colors = ['#613EEA', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336'];
+    return colors[index % colors.length];
+  };
 
   const handleGetStarted = (planDetails: any) => {
     navigation.navigate('PlanDetails', planDetails)
@@ -96,6 +134,40 @@ const FreeDashboard = ({ navigation }: any) => {
       locked: true,
     },
   ];
+  
+  // Add dynamic tabs to cards
+  const allCards:DashboardCard[] = [...dashboardCards];
+  if (!loading) {
+    dynamicTabs.forEach((tab, index) => {
+      allCards.push({
+        title: tab.title,
+        icon: getIconForTitle(tab.title),
+        description: `Access ${tab.title.toLowerCase()}`,
+        color: getColorForIndex(dashboardCards.length + index),
+        locked: false,
+        isDynamic: true,
+        html: tab.html,
+        url: tab.url,
+        route: 'DynamicContentScreen',
+        routeParams: {
+          title: tab.title,
+          html: tab.html,
+          url: tab.url
+        }
+      });
+    });
+  }
+
+  // Function to handle card press
+  const handleCardPress = (card: any) => {
+    if (card.locked) return;
+    
+    if (card.isDynamic && card.route) {
+      navigation.navigate(card.route, card.routeParams);
+    } else if (card.route) {
+      navigation.navigate(card.route);
+    }
+  };
 
   // Determine cards per row based on screen width
   const getGridColumns = () => {
@@ -141,7 +213,7 @@ const FreeDashboard = ({ navigation }: any) => {
           styles.dashboardContainer,
           { flexDirection: gridColumns === 1 ? 'column' : 'row' }
         ]}>
-          {dashboardCards.map((card, index) => (
+          {allCards.map((card, index) => (
             <TouchableOpacity
               key={index}
               style={[
@@ -150,7 +222,7 @@ const FreeDashboard = ({ navigation }: any) => {
                 card.locked && styles.lockedCard,
                 gridColumns === 1 && { minHeight: 130 }
               ]}
-              onPress={() => card.route && !card.locked && navigation.navigate(card.route)}
+              onPress={() => handleCardPress(card)}
               disabled={card.locked}
               accessible={true}
               accessibilityLabel={`${card.title}: ${card.description}${card.locked ? '. Premium only' : ''}`}

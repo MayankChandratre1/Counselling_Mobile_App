@@ -201,7 +201,7 @@ const ContactPage = () => {
                   onPress={handleWhatsAppGroup}
                   icon="group"
                   text="Join WhatsApp"
-                  bgColor="#25D366"
+                  bgColor="#128C7E" // Changed from bright green to a more muted WhatsApp color
                   loadingKey="whatsappGroup"
                 />
               </View>
@@ -211,7 +211,7 @@ const ContactPage = () => {
                   onPress={handleWhatsApp}
                   icon="chat"
                   text="Message"
-                  bgColor="#25D366"
+                  bgColor="#128C7E" // Changed from bright green to a more muted WhatsApp color
                   loadingKey="whatsapp"
                 />
               </View>
@@ -223,7 +223,7 @@ const ContactPage = () => {
                   onPress={handleYouTube}
                   icon="play-circle-filled"
                   text="YouTube"
-                  bgColor="#FF0000"
+                  bgColor="#CC0000" // Changed from bright red to a more subdued YouTube red
                   loadingKey="youtube"
                 />
               </View>
@@ -299,7 +299,7 @@ const ContactPage = () => {
               accessibilityLabel="Message on WhatsApp"
               accessibilityRole="button"
             >
-              <View style={[styles.quickIconContainer, { backgroundColor: '#25D366' }]}>
+              <View style={[styles.quickIconContainer, { backgroundColor: '#128C7E' }]}> {/* Changed from bright green */}
                 <Icon name="chat" size={scale(20)} color="#fff" />
               </View>
               <CustomText style={styles.quickContactText}>Message</CustomText>
@@ -313,7 +313,7 @@ const ContactPage = () => {
               accessibilityLabel="View location"
               accessibilityRole="button"
             >
-              <View style={[styles.quickIconContainer, { backgroundColor: '#4285F4' }]}>
+              <View style={[styles.quickIconContainer, { backgroundColor: '#1A73E8' }]}> {/* Changed from bright blue */}
                 <Icon name="location-on" size={scale(20)} color="#fff" />
               </View>
               <CustomText style={styles.quickContactText}>Location</CustomText>
