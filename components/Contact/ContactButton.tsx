@@ -3,12 +3,30 @@ import React from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 
-const ContactButton = () => {
+const ContactButton = ({isPremium}: {
+  isPremium: boolean
+}) => {
   const navigation = useNavigation<any>();
 
 
   if(!navigation ) return null; // Ensure navigation is available
 
+  if(isPremium){
+    return (
+      <TouchableOpacity 
+        style={[styles.container,{bottom:90}]}
+        onPress={() => {
+          try{
+            navigation.navigate('Contact');
+          }catch(e:any){
+            console.log(e.type);
+          }
+        }}
+      >
+        <Icon name="phone" size={22} color="#FFFFFF" />
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity 
@@ -31,7 +49,7 @@ export default ContactButton;
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 160,
+    bottom:  160,
     right: 16,
     zIndex: 1000,
     elevation: 0,

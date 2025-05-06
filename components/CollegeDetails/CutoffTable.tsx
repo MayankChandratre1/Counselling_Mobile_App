@@ -1,5 +1,5 @@
-import { StyleSheet, View, FlatList, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { StyleSheet, View, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
 import CustomText from '../General/CustomText'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
@@ -24,88 +24,49 @@ interface Cutoff {
 const CutoffTable = ({cutoffs}: {
     cutoffs: Cutoff[]
 }) => {
-    const [cutoffsData, setCutoffsData] = useState<Cutoff[]>(cutoffs);
-    const [expanded, setExpanded] = useState<{[key: string]: boolean}>({});
+    // If no cutoffs are available
+    if (cutoffs.length === 0) {
+      return (
+        <View style={styles.emptyCutoffs}>
+          <Icon name="alert-circle-outline" size={48} color="#999" />
+          <CustomText style={styles.emptyCutoffsText}>
+            No cutoff data available for this selection
+          </CustomText>
+        </View>
+      );
+    }
 
-    useEffect(() => {
-      setCutoffsData(cutoffs);
-    }, [cutoffs]);
-
-    // Extract round number from capRound string
+    // Get round info from first cutoff for the table header
+    const firstCutoff = cutoffs[0];
+    const capRound = firstCutoff?.capRound || '';
+    
+    // Extract round number
     const getRoundNumber = (capRound: string) => {
       const matches = capRound.match(/\d+/);
       return matches ? Number(matches[0]) : 0;
     };
+    
+    const roundNumber = getRoundNumber(capRound);
+    const yearDisplay = firstCutoff?.year || "previous";
 
-    // Group cutoffs by capRound for better organization
-    const groupedCutoffs = cutoffsData.reduce((acc, cutoff) => {
-      const roundKey = cutoff.capRound;
-      if (!acc[roundKey]) {
-        acc[roundKey] = [];
-      }
-      acc[roundKey].push(cutoff);
-      return acc;
-    }, {} as {[key: string]: Cutoff[]});
-
-    // Sort capRounds numerically
-    const sortedRoundKeys = Object.keys(groupedCutoffs).sort((a, b) => 
-      getRoundNumber(a) - getRoundNumber(b)
-    );
-
-    const toggleExpand = (roundKey: string) => {
-      setExpanded(prev => ({
-        ...prev,
-        [roundKey]: !prev[roundKey]
-      }));
-    };
-
-    const renderCutoffItem = ({ item }: { item: Cutoff }) => (
-      <View style={styles.tableRow}>
-        <View style={styles.categoryCell}>
-          <CustomText style={styles.categoryText}>{item.Category || "N/A"}</CustomText>
-        </View>
-        <View style={styles.rankCell}>
-          <CustomText style={styles.rankText}>
-            {item.rank}
-          </CustomText>
-        </View>
-        <View style={styles.percentileCell}>
-          <CustomText style={styles.percentileText}>
-            {item.percentile.toFixed(2)}%
-          </CustomText>
-        </View>
-      </View>
-    );
-
-    const renderRoundSection = (roundKey: string, cutoffs: Cutoff[]) => {
-      const isExpandable = cutoffs.length > 3;
-      const displayCutoffs = expanded[roundKey] ? cutoffs : cutoffs.slice(0, 3);
-      const roundNumber = getRoundNumber(roundKey);
-      
-      return (
-        <View key={roundKey} style={styles.roundSection}>
+    return (
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* Single Cutoff Table */}
+        <View style={styles.roundSection}>
           <View style={styles.roundHeader}>
             <View style={styles.roundBadge}>
-              <CustomText style={styles.roundBadgeText}>Round {roundNumber}</CustomText>
+              <CustomText style={styles.roundBadgeText}>
+                Round {roundNumber}
+              </CustomText>
             </View>
-            <CustomText style={styles.roundTitle}>CAP Round {roundNumber}</CustomText>
-            
-            {isExpandable && (
-              <TouchableOpacity 
-                onPress={() => toggleExpand(roundKey)}
-                style={styles.expandButton}
-                accessibilityLabel={expanded[roundKey] ? 
-                  `Collapse CAP Round ${roundNumber}` : 
-                  `Expand CAP Round ${roundNumber}`}
-                accessibilityRole="button"
-              >
-                <Icon 
-                  name={expanded[roundKey] ? "chevron-up" : "chevron-down"} 
-                  size={24} 
-                  color="#613EEA" 
-                />
-              </TouchableOpacity>
-            )}
+            <CustomText style={styles.roundTitle}>
+              CAP Round {roundNumber}
+              {firstCutoff?.year && ` (${firstCutoff.year})`}
+            </CustomText>
           </View>
           
           <View style={styles.tableContainer}>
@@ -121,7 +82,7 @@ const CutoffTable = ({cutoffs}: {
               </View>
             </View>
             
-            {displayCutoffs.map((cutoff, id) => (
+            {cutoffs.map((cutoff, id) => (
               <View key={cutoff.id+"_"+id} style={styles.tableRow}>
                 <View style={styles.categoryCell}>
                   <CustomText style={styles.categoryText}>{cutoff.Category || "N/A"}</CustomText>
@@ -138,49 +99,12 @@ const CutoffTable = ({cutoffs}: {
                 </View>
               </View>
             ))}
-            
-            {isExpandable && !expanded[roundKey] && (
-              <TouchableOpacity 
-                style={styles.showMoreButton} 
-                onPress={() => toggleExpand(roundKey)}
-                accessibilityLabel={`Show ${cutoffs.length - 3} more entries for Round ${roundNumber}`}
-                accessibilityRole="button"
-              >
-                <CustomText style={styles.showMoreText}>
-                  Show {cutoffs.length - 3} more
-                </CustomText>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
-      );
-    };
-
-    // If no cutoffs are available
-    if (cutoffsData.length === 0) {
-      return (
-        <View style={styles.emptyCutoffs}>
-          <Icon name="alert-circle-outline" size={48} color="#999" />
-          <CustomText style={styles.emptyCutoffsText}>
-            No cutoff data available for this branch
-          </CustomText>
-        </View>
-      );
-    }
-
-    return (
-      <ScrollView 
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        {sortedRoundKeys.map(roundKey => 
-          renderRoundSection(roundKey, groupedCutoffs[roundKey])
-        )}
         
         <View style={styles.footer}>
           <CustomText style={styles.footerText}>
-            Data shown is from previous year's cutoffs
+            Data shown is from {yearDisplay} year's cutoffs
           </CustomText>
         </View>
       </ScrollView>
@@ -329,5 +253,62 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
-  }
+  },
+  // New styles for selectors
+  selectorContainer: {
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#00000030',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    padding: 12,
+    marginHorizontal: 5,
+  },
+  selectorGroup: {
+    marginBottom: 0,
+  },
+  selectorLabel: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  pillsContainer: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+  },
+  pill: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  activePill: {
+    backgroundColor: '#613EEA',
+    borderColor: '#613EEA',
+  },
+  pillText: {
+    fontSize: 13,
+    color: '#555',
+  },
+  activePillText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  noDataRow: {
+    padding: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  noDataText: {
+    color: '#888',
+    fontStyle: 'italic',
+  },
 });

@@ -1,11 +1,12 @@
-import { StyleSheet, View, TouchableOpacity, Dimensions, Modal, ScrollView } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { StyleSheet, View, TouchableOpacity, Dimensions, Modal, ScrollView, SafeAreaView, StatusBar, Platform } from 'react-native'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import CutoffTable from './CutoffTable'
 import { Picker } from '@react-native-picker/picker'
 import CustomText from '../General/CustomText'
-import { FONTS } from '../../styles/typography'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import AntDesign from 'react-native-vector-icons/AntDesign'
+import { useFocusEffect } from '@react-navigation/native'
+import GetAdviceButton from './GetAdviceButton'
 
 interface Cutoff {
     id: string;
@@ -21,386 +22,580 @@ interface Cutoff {
     year?: number;
 }
 
-const CutoffTab = ({cutoffs}: { cutoffs: Cutoff[] }) => {
-  const [filteredCutoffs, setFilteredCutoffs] = useState(cutoffs);
-  const [gender, setGender] = useState('All');
-  const [selectedBranch, setSelectedBranch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedYear, setSelectedYear] = useState<number | ''>('');
+interface CutoffTabProps {
+  cutoffs: Cutoff[];
+}
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Memoized Pill component to avoid re-renders
+const Pill = React.memo(({ item, selected, onSelect, label }: { 
+  item: string, 
+  selected: boolean, 
+  onSelect: () => void,
+  label: string
+}) => (
+  <TouchableOpacity
+    style={[styles.pill, selected && styles.activePill]}
+    onPress={onSelect}
+    accessibilityLabel={label}
+    accessibilityState={{ selected }}
+  >
+    <CustomText 
+      style={[styles.pillText, selected && styles.activePillText]}
+      numberOfLines={1}
+    >
+      {item}
+    </CustomText>
+  </TouchableOpacity>
+));
+
+// Memoized Chip component
+const Chip = React.memo(({ item, selected, onSelect, label }: {
+  item: string | number,
+  selected: boolean,
+  onSelect: () => void,
+  label: string
+}) => (
+  <TouchableOpacity
+    style={[styles.chip, selected && styles.activeChip]}
+    onPress={onSelect}
+    accessibilityLabel={label}
+    accessibilityState={{ selected }}
+  >
+    <CustomText 
+      style={[styles.chipText, selected && styles.activeChipText]}
+    >
+      {item}
+    </CustomText>
+  </TouchableOpacity>
+));
+
+const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
+  // Initial state setup with sensible defaults
+  const [filteredCutoffs, setFilteredCutoffs] = useState<Cutoff[]>([]);
+  const [gender, setGender] = useState<string>('All');
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
   const [selectedCapRound, setSelectedCapRound] = useState<string>('');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [activeFiltersCount, setActiveFiltersCount] = useState<number>(0);
+  const [tableLoading, setTableLoading] = useState<boolean>(true);
+  const [initialized, setInitialized] = useState<boolean>(false);
 
-  // Get unique values for filters
-  const branches = Array.from(new Set(cutoffs.map(c => c.branchName)));
-  const categories = Array.from(new Set(cutoffs.map(c => c.Category)));
-  const years = Array.from(new Set(cutoffs.map(c => c.year))).filter(Boolean) as number[];
-  const capRounds = Array.from(new Set(cutoffs.map(c => c.capRound))).sort();
+  // Memoized derived data to prevent recalculation on every render
+  const {
+    branches,
+    categories,
+    years,
+    capRounds,
+    defaultBranch,
+    defaultCapRound,
+    defaultYear
+  } = useMemo(() => {
+    // Extract unique values and sort them for consistency
+    const branchList = Array.from(new Set(cutoffs.map(c => c.branchName))).sort();
+    const categoryList = Array.from(new Set(cutoffs.map(c => c.Category))).sort();
+    const yearList = Array.from(new Set(cutoffs.map(c => c.year))).filter(Boolean) as number[];
+    yearList.sort((a, b) => b - a); // Sort years in descending order
+    const roundList = Array.from(new Set(cutoffs.map(c => c.capRound))).sort();
+    
+    return {
+      branches: branchList,
+      categories: categoryList,
+      years: yearList,
+      capRounds: roundList,
+      defaultBranch: branchList.length > 0 ? branchList[0] : '',
+      defaultCapRound: roundList.length > 0 ? roundList[0] : '',
+      defaultYear: yearList.length > 0 ? Math.max(...yearList) : undefined
+    };
+  }, [cutoffs]);
 
-  useEffect(() => {
-    if (branches.length > 0 && !selectedBranch) {
-      setSelectedBranch(branches[0]);
-    }
+  // Format round number for display - memoized to avoid recalculation
+  const formatRoundDisplay = useCallback((capRound: string): string => {
+    const matches = capRound.match(/\d+/);
+    return matches ? `Round ${matches[0]}` : capRound;
   }, []);
 
+  // Initialize defaults only once
   useEffect(() => {
-    let filtered = [...cutoffs];
-
-    if (gender !== 'All') {
-      filtered = filtered.filter(c => {
-        if (gender === 'Female') return c.Category && c.Category.startsWith('L');
-        return c.Category && c.Category.startsWith('G');
-      });
+    if (!initialized && cutoffs.length > 0) {
+      setSelectedBranch(defaultBranch);
+      setSelectedCapRound(defaultCapRound);
+      setSelectedYear(defaultYear);
+      setInitialized(true);
     }
+  }, [initialized, defaultBranch, defaultCapRound, defaultYear, cutoffs.length]);
 
-    if (selectedBranch) {
-      filtered = filtered.filter(c => c.branchName === selectedBranch);
-    }
-
-    if (selectedCategory) {
-      filtered = filtered.filter(c => c.Category === selectedCategory);
-    }
+  // Filter cutoffs efficiently
+  useEffect(() => {
+    if (!selectedBranch || !initialized) return; // Don't filter until initialized
     
-    if (selectedYear) {
-      filtered = filtered.filter(c => c.year === selectedYear);
-    }
+    setTableLoading(true);
+    
+    // Perform filtering immediately instead of using setTimeout
+    const filtered = cutoffs.filter(c => {
+      // Branch filter is always applied
+      if (c.branchName !== selectedBranch) return false;
+      
+      // Only check other filters if they're set
+      if (gender !== 'All') {
+        const isLadies = c.Category && c.Category.includes('L');
+        if ((gender === 'Female' && !isLadies) || (gender === 'Male' && isLadies)) {
+          return false;
+        }
+      }
+      
+      if (selectedCategory && c.Category !== selectedCategory) return false;
+      if (selectedYear && c.year !== selectedYear) return false;
+      if (selectedCapRound && c.capRound !== selectedCapRound) return false;
+      
+      return true;
+    });
 
-    if (selectedCapRound) {
-      filtered = filtered.filter(c => c.capRound === selectedCapRound);
-    }
-
+    // Update state in a batch
     setFilteredCutoffs(filtered);
+    setActiveFiltersCount(
+      (gender !== 'All' ? 1 : 0) + 
+      (selectedCategory ? 1 : 0)
+    );
+    setTableLoading(false);
     
-    // Count active filters
-    let count = 0;
-    if (gender !== 'All') count++;
-    if (selectedCategory) count++;
-    if (selectedYear) count++;
-    if (selectedCapRound) count++;
-    setActiveFiltersCount(count);
-  }, [gender, selectedBranch, selectedCategory, selectedYear, selectedCapRound]);
+  }, [gender, selectedBranch, selectedCategory, selectedYear, selectedCapRound, cutoffs, initialized]);
 
-  const clearFilters = () => {
+  // Reset the component when it comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // No need to do anything special on focus for now
+      return () => {
+        // Cleanup can be implemented here if needed
+      };
+    }, [])
+  );
+
+  const clearFilters = useCallback(() => {
     setGender('All');
     setSelectedCategory('');
-    setSelectedYear('');
-    setSelectedCapRound('');
-  };
+  }, []);
 
-  // Function to format the applied filters for display
-  const getAppliedFiltersText = () => {
+  // Get formatted display of applied filters - memoized
+  const appliedFiltersText = useMemo(() => {
     const filters = [];
     if (gender !== 'All') filters.push(gender);
     if (selectedCategory) filters.push(selectedCategory);
-    if (selectedYear) filters.push(`${selectedYear}`);
-    if (selectedCapRound) filters.push(`Cap Round ${selectedCapRound}`);
     
     if (filters.length === 0) return 'No filters applied';
     return filters.join(' • ');
-  };
-
-  // Extract number from capRound string for display
-  const getCapRoundNumber = (capRound: string): string => {
-    const matches = capRound.match(/\d+/);
-    return matches ? matches[0] : capRound;
-  };
+  }, [gender, selectedCategory]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.filterBar}>
-        <View style={styles.branchSelector}>
-          <CustomText style={styles.label}>Branch:</CustomText>
-          <View style={styles.branchPickerContainer}>
-            <Picker
-              selectedValue={selectedBranch}
-              onValueChange={(value) => setSelectedBranch(value)}
-              style={styles.branchPicker}
-              dropdownIconColor="#371981"
-            >
-              {branches.map((branch) => (
-                <Picker.Item key={branch} label={branch} value={branch} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <Icon name="filter-variant" size={22} color="#371981" />
-          {activeFiltersCount > 0 && (
-            <View style={styles.filterBadge}>
-              <CustomText style={styles.filterBadgeText}>{activeFiltersCount}</CustomText>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {activeFiltersCount > 0 && (
-        <View style={styles.appliedFiltersContainer}>
-          <CustomText style={styles.appliedFiltersText} numberOfLines={1}>
-            {getAppliedFiltersText()}
-          </CustomText>
-          <TouchableOpacity onPress={clearFilters}>
-            <CustomText style={styles.clearText}>Clear</CustomText>
-          </TouchableOpacity>
-        </View>
-      )}
+    <SafeAreaView style={styles.safeArea}>
       
-      <View style={styles.tableContainer}>
-        <CustomText style={styles.selectedBranch}> {selectedBranch}</CustomText>
-        <CutoffTable cutoffs={filteredCutoffs} />
-      </View>
-
-      {/* Filter Modal */}
-      <Modal
-        visible={showFilterModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <CustomText style={styles.modalTitle}>Filter Cutoffs</CustomText>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setShowFilterModal(false)}
-              >
-                <AntDesign name="close" size={24} color="#371981" />
-              </TouchableOpacity>
+      <View style={styles.container}>
+        
+        {/* Header with Branch Selection and Filter Button */}
+        <View style={styles.headerContainer}>
+          <View style={styles.headerContentWrapper}>
+            <View style={styles.branchTitleContainer}>
+              <View style={styles.branchNameContainer}>
+                <CustomText 
+                  style={styles.headerText}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {selectedBranch}
+                </CustomText>
+              </View>
             </View>
-
-            <ScrollView style={styles.modalContent}>
-              <View style={styles.filterSection}>
-                <CustomText style={styles.filterSectionTitle}>Gender</CustomText>
-                <View style={styles.optionsContainer}>
-                  {['All', 'Male', 'Female'].map((option) => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.optionButton,
-                        gender === option && styles.selectedOptionButton
-                      ]}
-                      onPress={() => setGender(option)}
-                    >
-                      <CustomText 
-                        style={[
-                          styles.optionText,
-                          gender === option && styles.selectedOptionText
-                        ]}
-                      >
-                        {option}
-                      </CustomText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterSection}>
-                <CustomText style={styles.filterSectionTitle}>Cap Round</CustomText>
-                <View style={styles.optionsContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.optionButton,
-                      selectedCapRound === '' && styles.selectedOptionButton
-                    ]}
-                    onPress={() => setSelectedCapRound('')}
-                  >
-                    <CustomText 
-                      style={[
-                        styles.optionText,
-                        selectedCapRound === '' && styles.selectedOptionText
-                      ]}
-                    >
-                      All
-                    </CustomText>
-                  </TouchableOpacity>
-                  {capRounds.map((round) => (
-                    <TouchableOpacity
-                      key={round}
-                      style={[
-                        styles.optionButton,
-                        selectedCapRound === round && styles.selectedOptionButton
-                      ]}
-                      onPress={() => setSelectedCapRound(round)}
-                    >
-                      <CustomText 
-                        style={[
-                          styles.optionText,
-                          selectedCapRound === round && styles.selectedOptionText
-                        ]}
-                      >
-                        Round {getCapRoundNumber(round)}
-                      </CustomText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterSection}>
-                <CustomText style={styles.filterSectionTitle}>Category</CustomText>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={selectedCategory}
-                    onValueChange={(value) => setSelectedCategory(value)}
-                    style={styles.modalPicker}
-                    dropdownIconColor="#371981"
-                  >
-                    <Picker.Item label="All Categories" value="" />
-                    {categories.map((category) => (
-                      <Picker.Item key={category} label={category} value={category} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-
-              {years.length > 0 && (
-                <View style={styles.filterSection}>
-                  <CustomText style={styles.filterSectionTitle}>Year</CustomText>
-                  <View style={styles.optionsContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.optionButton,
-                        selectedYear === '' && styles.selectedOptionButton
-                      ]}
-                      onPress={() => setSelectedYear('')}
-                    >
-                      <CustomText 
-                        style={[
-                          styles.optionText,
-                          selectedYear === '' && styles.selectedOptionText
-                        ]}
-                      >
-                        All
-                      </CustomText>
-                    </TouchableOpacity>
-                    {years.map((year) => (
-                      <TouchableOpacity
-                        key={year}
-                        style={[
-                          styles.optionButton,
-                          selectedYear === year && styles.selectedOptionButton
-                        ]}
-                        onPress={() => setSelectedYear(year)}
-                      >
-                        <CustomText 
-                          style={[
-                            styles.optionText,
-                            selectedYear === year && styles.selectedOptionText
-                          ]}
-                        >
-                          {year}
-                        </CustomText>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+            <TouchableOpacity 
+              style={styles.filterButton}
+              onPress={() => setShowFilterModal(true)}
+              accessibilityLabel="Filter options"
+            >
+              <Icon name="filter-variant" size={22} color="#371981" />
+              {activeFiltersCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <CustomText style={styles.filterBadgeText}>{activeFiltersCount}</CustomText>
                 </View>
               )}
-            </ScrollView>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Branch Selection Horizontal Scrollable List - Use virtualization for large lists */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsContainer}
+          >
+            {branches.map((branch) => (
+              <Pill 
+                key={branch}
+                item={branch}
+                selected={selectedBranch === branch}
+                onSelect={() => setSelectedBranch(branch)}
+                label={`Select ${branch} branch`}
+              />
+            ))}
+          </ScrollView>
+        </View>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
+        {/* Selection Chips Section */}
+        <View style={styles.selectionChipsSection}>
+          {/* Year Selection */}
+          {years.length > 0 && (
+            <View style={[styles.chipSectionContainer,{borderBottomWidth: 0.5, paddingBottom: 5, marginBottom: 5}]}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScrollContainer}
+              >
+                {years.map((year) => (
+                  <Chip
+                    key={`year-${year}`}
+                    item={year}
+                    selected={selectedYear === year}
+                    onSelect={() => setSelectedYear(year)}
+                    label={`Select year ${year}`}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Round Selection */}
+          <View style={styles.chipSectionContainer}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipsScrollContainer}
+            >
+              {capRounds.map((round) => (
+                <Chip
+                  key={`round-${round}`}
+                  item={formatRoundDisplay(round)}
+                  selected={selectedCapRound === round}
+                  onSelect={() => setSelectedCapRound(round)}
+                  label={`Select ${formatRoundDisplay(round)}`}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* Applied Filters Indicator */}
+        {activeFiltersCount > 0 && (
+          <View style={styles.appliedFiltersContainer}>
+            <View style={styles.filterTagsContainer}>
+              <Icon name="filter-outline" size={16} color="#371981" style={styles.filterIcon} />
+              <CustomText style={styles.appliedFiltersText} numberOfLines={1}>
+                {appliedFiltersText}
+              </CustomText>
+            </View>
+            <TouchableOpacity 
+              onPress={clearFilters}
+              accessibilityLabel="Clear all filters"
+            >
+              <CustomText style={styles.clearText}>Clear</CustomText>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {/* Cutoff Table */}
+        <View style={styles.tableContainer}>
+          {tableLoading ? (
+            <View style={styles.loadingContainer}>
+              <CustomText style={styles.loadingText}>Loading cutoffs...</CustomText>
+            </View>
+          ) : filteredCutoffs.length === 0 ? (
+            <View style={styles.noDataContainer}>
+              <Icon name="alert-circle-outline" size={40} color="#888" />
+              <CustomText style={styles.noDataText}>No cutoff data available for selected filters</CustomText>
+              <TouchableOpacity 
                 style={styles.resetButton}
                 onPress={clearFilters}
               >
-                <CustomText style={styles.resetButtonText}>Reset</CustomText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.applyButton}
-                onPress={() => setShowFilterModal(false)}
-              >
-                <CustomText style={styles.applyButtonText}>Apply</CustomText>
-                <AntDesign name="check" size={16} color="#FFF" style={{ marginLeft: 5 }} />
+                <CustomText style={styles.resetButtonText}>Reset Filters</CustomText>
               </TouchableOpacity>
             </View>
-          </View>
+          ) : (
+            <CutoffTable cutoffs={filteredCutoffs} />
+          )}
         </View>
-      </Modal>
-    </View>
-  )
-}
 
-export default CutoffTab
+        {/* Filter Modal */}
+        {showFilterModal && (
+          <Modal
+            visible={true}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowFilterModal(false)}
+            statusBarTranslucent
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeader}>
+                  <CustomText style={styles.modalTitle}>Filter Cutoffs</CustomText>
+                  <TouchableOpacity 
+                    style={styles.closeButton}
+                    onPress={() => setShowFilterModal(false)}
+                    accessibilityLabel="Close filter modal"
+                  >
+                    <AntDesign name="close" size={24} color="#371981" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.modalContent}>
+                  {/* Gender Filter Section */}
+                  <View style={styles.filterSection}>
+                    <CustomText style={styles.filterSectionTitle}>Gender</CustomText>
+                    <View style={styles.optionsContainer}>
+                      {['All', 'Male', 'Female'].map((option) => (
+                        <TouchableOpacity
+                          key={option}
+                          style={[
+                            styles.optionButton,
+                            gender === option && styles.selectedOptionButton
+                          ]}
+                          onPress={() => setGender(option)}
+                          accessibilityLabel={`Select ${option} gender`}
+                          accessibilityState={{ selected: gender === option }}
+                        >
+                          <CustomText 
+                            style={[
+                              styles.optionText,
+                              gender === option && styles.selectedOptionText
+                            ]}
+                          >
+                            {option}
+                          </CustomText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Category Filter Section */}
+                  <View style={styles.filterSection}>
+                    <CustomText style={styles.filterSectionTitle}>Category</CustomText>
+                    <View style={styles.pickerWrapper}>
+                      <Picker
+                        selectedValue={selectedCategory}
+                        onValueChange={(value) => setSelectedCategory(value)}
+                        style={styles.modalPicker}
+                        dropdownIconColor="#371981"
+                        accessibilityLabel="Select category"
+                      >
+                        <Picker.Item label="All Categories" value="" />
+                        {categories.map((category) => (
+                          <Picker.Item key={category} label={category} value={category} />
+                        ))}
+                      </Picker>
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity
+                    style={styles.modalResetButton}
+                    onPress={clearFilters}
+                    accessibilityLabel="Reset all filters"
+                  >
+                    <CustomText style={styles.resetButtonText}>Reset All</CustomText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.applyButton}
+                    onPress={() => setShowFilterModal(false)}
+                    accessibilityLabel="Apply filters"
+                  >
+                    <CustomText style={styles.applyButtonText}>Apply</CustomText>
+                    <AntDesign name="check" size={16} color="#FFF" style={{ marginLeft: 5 }} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default React.memo(CutoffTab);
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F7F7FA',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingBottom: 15,
+    paddingTop: 10,
   },
-  filterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    paddingHorizontal: 2,
-  },
-  branchSelector: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#371981',
-    marginRight: 10,
-  },
-  branchPickerContainer: {
-    flex: 1,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
+  headerContainer: {
     backgroundColor: '#fff',
-    justifyContent: 'center',
-    paddingHorizontal: 5,
-    marginTop:10
+    borderRadius: 16,
+    shadowColor: '#00000030',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    padding: 16,
+    marginBottom: 12,
   },
-  branchPicker: {
-    height: 60,
-    marginVertical:15,
+  headerContentWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  branchTitleContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  branchLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  branchNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: '700',
     color: '#371981',
+    flex: 1,
+    marginRight: 6,
   },
   filterButton: {
-    backgroundColor: '#f0f0ff',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    backgroundColor: '#F0F0FF',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
     borderWidth: 1,
-    borderColor: '#e0e0ff',
+    borderColor: '#E0E0FF',
     position: 'relative',
+    shadowColor: '#00000020',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   filterBadge: {
     position: 'absolute',
     top: -5,
     right: -5,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#FF4D6D',
     width: 18,
     height: 18,
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   filterBadgeText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
+  },
+  pillsContainer: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+  },
+  pill: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: '#F8F8FC',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#ECECF6',
+    maxWidth: 140,
+  },
+  activePill: {
+    backgroundColor: '#613EEA',
+    borderColor: '#613EEA',
+  },
+  pillText: {
+    fontSize: 14,
+    color: '#555',
+  },
+  activePillText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  selectionChipsSection: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#00000030',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    padding: 16,
+    marginBottom: 12,
+  },
+  chipSectionContainer: {
+    marginBottom: 5,
+  },
+  chipSectionTitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  chipsScrollContainer: {
+    flexDirection: 'row',
+    paddingVertical: 2,
+  },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: '#F8F8FC',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#ECECF6',
+  },
+  activeChip: {
+    backgroundColor: '#613EEA',
+    borderColor: '#613EEA',
+  },
+  chipText: {
+    fontSize: 13,
+    color: '#555',
+  },
+  activeChipText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   appliedFiltersContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f0f0ff',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    backgroundColor: '#F0F0FF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0FF',
+  },
+  filterTagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  filterIcon: {
+    marginRight: 6,
   },
   appliedFiltersText: {
     color: '#371981',
@@ -410,18 +605,42 @@ const styles = StyleSheet.create({
   clearText: {
     color: '#613EEA',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginLeft: 10,
   },
   tableContainer: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#00000030',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
   },
-  selectedBranch: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    color: '#666',
+    fontSize: 16,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noDataText: {
+    color: '#666',
+    fontSize: 16,
     textAlign: 'center',
-    marginBottom: 12,
-    color: '#333',
+    marginTop: 12,
+    marginBottom: 20,
   },
   modalOverlay: {
     flex: 1,
@@ -430,9 +649,18 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 5,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -440,7 +668,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#F0F0F0',
   },
   modalTitle: {
     fontSize: 18,
@@ -448,14 +676,15 @@ const styles = StyleSheet.create({
     color: '#371981',
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8F8FC',
   },
   modalContent: {
-    padding: 16,
+    padding: 20,
     maxHeight: '60%',
   },
   filterSection: {
@@ -463,9 +692,9 @@ const styles = StyleSheet.create({
   },
   filterSectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   optionsContainer: {
     flexDirection: 'row',
@@ -473,12 +702,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   optionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f0f0ff',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    backgroundColor: '#F8F8FC',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e0e0ff',
+    borderColor: '#ECECF6',
   },
   selectedOptionButton: {
     backgroundColor: '#613EEA',
@@ -494,10 +723,10 @@ const styles = StyleSheet.create({
   },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginBottom: 10,
+    borderColor: '#ECECF6',
+    borderRadius: 10,
+    backgroundColor: '#F8F8FC',
+    overflow: 'hidden',
   },
   modalPicker: {
     height: 50,
@@ -507,31 +736,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    justifyContent: 'flex-end',
+    borderTopColor: '#F0F0F0',
+    justifyContent: 'space-between',
+  },
+  modalResetButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   resetButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginRight: 10,
+    borderRadius: 10,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    marginTop: 16,
   },
   resetButtonText: {
-    color: '#666',
-    fontWeight: 'bold',
+    color: '#555',
+    fontWeight: '600',
+    fontSize: 14,
   },
   applyButton: {
     flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: '#613EEA',
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
+    marginLeft: 12,
+    shadowColor: '#613EEA50',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   applyButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 14,
   },
-})
+});

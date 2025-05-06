@@ -9,6 +9,7 @@ import CutoffTab from '../components/CollegeDetails/CutoffTab'
 import AboutTab from '../components/Colleges/AboutTab'
 import { useCollegeContext } from '../contexts/CollegeContext'
 import { College } from '../utils/college-data-store'
+import GetAdviceButton from '../components/CollegeDetails/GetAdviceButton'
 
 type CollegeDetailsType = College
 
@@ -174,6 +175,7 @@ const CollegeDetails = () => {
   return (
     <>
     <TopBar heading='College Details' />
+    
     <ScrollView style={styles.container}>
       <Image 
         source={college?.image 
@@ -212,6 +214,7 @@ const CollegeDetails = () => {
         </View>
         <Text style={styles.title}>{college.instituteName}</Text>
         <Text style={styles.subtitle}>{college.city ? college.city.toUpperCase(): "N/A"}</Text>
+        <GetAdviceButton />
         
         <TabBar activeTab={activeTab} onTabPress={setActiveTab} />
         {renderTabContent()}
@@ -260,7 +263,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 200,
+    height: 150,
     borderRadius: 8,
     marginBottom: 15,
   },

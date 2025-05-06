@@ -11,6 +11,7 @@ import React from 'react';
 import CustomText from '../components/General/CustomText';
 import Landing from '../pages/Landing';
 import ContactButton from '../components/Contact/ContactButton';
+import { usePremiumPlan } from '../contexts/PremiumPlanContext';
 
 const Tab = createBottomTabNavigator();
 const { width, height } = Dimensions.get('window');
@@ -31,6 +32,7 @@ const CustomTabBarIcon = ({ focused, icon, label }: { focused: boolean; icon: st
 );
 
 const TabNavigator = () => {
+  const {currentPlan} = usePremiumPlan()
   // Define screens configuration to reduce repetitive code
   const screens = [
     { name: 'Home', component: Home, icon: 'home' },
@@ -63,7 +65,7 @@ const TabNavigator = () => {
           />
         ))}
       </Tab.Navigator>
-       {<ContactButton />}
+       {<ContactButton isPremium={currentPlan != "Free"} />}
     </View>
   );
 };

@@ -34,7 +34,7 @@ import ContactButton from './components/Contact/ContactButton';
 type RootStackParamList = {
   Onboarding: { step: number };
   Login: undefined;
-  Home: undefined;
+  Home: {isPremium: boolean}; 
   Notification: undefined;
   PlanDetails: {
     title: string;
@@ -61,7 +61,8 @@ type RootStackParamList = {
   AllEvents: undefined;
   ListDetails: { list: any };
   Contact: undefined;
-  Tab: undefined;
+  Tab: {
+    isPremium: boolean;};
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -336,8 +337,10 @@ const App = () => {
                    
                   </>
                 )}
-                  <Stack.Screen name="Home" component={TabNavigator} />
-                  <Stack.Screen name="Tab" component={TabNavigator} />
+                  <Stack.Screen name="Home" component={TabNavigator} initialParams={{isPremium: isPremium}} />
+                  <Stack.Screen name="Tab" component={TabNavigator} initialParams={{
+                    isPremium: isPremium,
+                  }} />
                   <Stack.Screen name="AllUpdates" component={AllUpdates} />
                   <Stack.Screen name="AllEvents" component={AllEvents} />
                   <Stack.Screen name="EventDetails" component={EventDetails} />
@@ -346,7 +349,7 @@ const App = () => {
                   <Stack.Screen name="Contact" component={ContactPage} />
 
               </Stack.Navigator>
-              {isLoggedIn && isPremium && <PremiumButton />}
+              {isLoggedIn && !isPremium && <PremiumButton />}
              
             </View>
 
