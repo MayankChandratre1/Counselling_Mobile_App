@@ -319,7 +319,7 @@ const Home: React.FC<NavigationProps> = ({ navigation }) => {
                 
                 <TouchableOpacity 
                     style={styles.mainNavItem}
-                    onPress={() => navigation.navigate('Favourites')}
+                    onPress={() => navigation.navigate('Contact')}
               //    onPress={() => Alert.alert('Coming Soon!', 'This feature is under development.')}
                   // onPress={()=>{ getOneSignalId() }}
                 >

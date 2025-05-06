@@ -10,6 +10,7 @@ import Browse from '../pages/Browse';
 import React from 'react';
 import CustomText from '../components/General/CustomText';
 import Landing from '../pages/Landing';
+import ContactButton from '../components/Contact/ContactButton';
 
 const Tab = createBottomTabNavigator();
 const { width, height } = Dimensions.get('window');
@@ -62,6 +63,7 @@ const TabNavigator = () => {
           />
         ))}
       </Tab.Navigator>
+       {<ContactButton />}
     </View>
   );
 };

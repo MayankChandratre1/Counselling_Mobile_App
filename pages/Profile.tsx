@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native'
+import { StyleSheet, View, ScrollView, TouchableOpacity, NativeModules } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import ProfileCard from '../components/Profile/ProfileCard'
 import ProfileForm from '../components/Profile/ProfileForm'
@@ -6,6 +6,9 @@ import TopBar from '../components/General/TopBar'
 import CustomText from '../components/General/CustomText'
 import { getUserData, logout } from '../utils/storage'
 import { useNavigation } from '@react-navigation/native'
+import { checkVersion } from "react-native-check-version";
+
+
 
 const Profile = () => {
   const navigation = useNavigation<any>();
@@ -18,6 +21,18 @@ const Profile = () => {
     };
     loadUserData();
   }, []);
+
+  const checkAppVersion = async () => {
+    const curr = NativeModules.RNDeviceInfo.appVersion
+    const version = await checkVersion({
+      bundleId:'com.chess.chesscoach'
+    });
+    console.log("Got version info:", curr, version);
+
+    if (version.needsUpdate) {
+      console.log(`App has a ${version.updateType} update pending.`);
+    }
+  }
 
   const handleLogout = async () => {
     const success = await logout(userData?.id);
@@ -40,7 +55,7 @@ const Profile = () => {
         <ProfileForm />
         
         <TouchableOpacity 
-          onPress={handleLogout} 
+          onPress={checkAppVersion} 
           style={styles.logoutButton}
         >
           <CustomText style={styles.logoutText}>Logout</CustomText>

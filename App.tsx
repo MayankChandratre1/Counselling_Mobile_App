@@ -25,6 +25,11 @@ import Favourites from './pages/Favourites';
 import AllEvents from './pages/AllEvents';
 import ListDetailsScreen from './pages/Lists/ListDetailsScreen';
 import { PremiumPlanProvider } from './contexts/PremiumPlanContext';
+import ForcedUpdateWrapper from './components/ForcedUpdate/ForcedUpdateWrapper';
+import ContactPage from './components/Contact/ContactPage';
+import { ContactProvider } from './contexts/ContactContext';
+import Counselling from './pages/Counselling';
+import ContactButton from './components/Contact/ContactButton';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -55,6 +60,8 @@ type RootStackParamList = {
   Favourites: undefined;
   AllEvents: undefined;
   ListDetails: { list: any };
+  Contact: undefined;
+  Tab: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -286,9 +293,15 @@ const App = () => {
   }
 
   return (
+    <ForcedUpdateWrapper
+      forceUpdateThreshold='patch'
+      bundleId='com.chess.chesscoach'
+    >
     <NavigationContainer>
       <CollegeProvider>
         <EventsProvider>
+          <ContactProvider>
+
           <PremiumPlanProvider>
             <View style={{ flex: 1 }}>
               <Stack.Navigator 
@@ -296,6 +309,7 @@ const App = () => {
                   headerShown: false,
                   animation: 'none'
                 }}
+                initialRouteName={isLoggedIn ? 'Home' : 'Onboarding'}
               >
                 {!isLoggedIn ? (
                   <>
@@ -305,16 +319,14 @@ const App = () => {
                       initialParams={{ step: 1 }}
                     />
                     <Stack.Screen name="Login" component={LoginScreen} />
-                    <Stack.Screen name="Home" component={TabNavigator} />
                     <Stack.Screen name="Notification" component={Notification} />
                     <Stack.Screen name="PlanDetails" component={PlanDetails} />
                     <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
                     <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
+                    
                   </>
                 ) : (
                   <>
-                    
-                    <Stack.Screen name="Home" component={TabNavigator} />
                     <Stack.Screen name="Login" component={LoginScreen} />
                     <Stack.Screen name="Notification" component={Notification} />
                     <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
@@ -324,18 +336,26 @@ const App = () => {
                    
                   </>
                 )}
+                  <Stack.Screen name="Home" component={TabNavigator} />
+                  <Stack.Screen name="Tab" component={TabNavigator} />
                   <Stack.Screen name="AllUpdates" component={AllUpdates} />
                   <Stack.Screen name="AllEvents" component={AllEvents} />
                   <Stack.Screen name="EventDetails" component={EventDetails} />
                   <Stack.Screen name="Favourites" component={Favourites} />
                   <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
+                  <Stack.Screen name="Contact" component={ContactPage} />
+
               </Stack.Navigator>
-              {isLoggedIn && !isPremium && <PremiumButton />}
+              {isLoggedIn && isPremium && <PremiumButton />}
+             
             </View>
+
           </PremiumPlanProvider>
+          </ContactProvider>
         </EventsProvider>
       </CollegeProvider>
     </NavigationContainer>
+    </ForcedUpdateWrapper>
   );
 };
 
