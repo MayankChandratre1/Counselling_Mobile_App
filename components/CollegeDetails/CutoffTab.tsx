@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import { useFocusEffect } from '@react-navigation/native'
 import GetAdviceButton from './GetAdviceButton'
+import { expandCategory } from '../../utils/categoryCleaner'
 
 interface Cutoff {
     id: string;
@@ -388,7 +389,7 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
                       >
                         <Picker.Item label="All Categories" value="" />
                         {categories.map((category) => (
-                          <Picker.Item key={category} label={category} value={category} />
+                          <Picker.Item key={category} label={expandCategory(category)} value={category} />
                         ))}
                       </Picker>
                     </View>
