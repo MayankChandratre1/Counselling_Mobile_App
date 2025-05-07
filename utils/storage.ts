@@ -157,6 +157,71 @@ export const getPremiumStatus = async () => {
   }
 }
 
+export const getChancesUseCount = async () => {
+  try {
+    const data = await getUserData();
+    if (!data) return 0;
+    if (data.isPremium) return -1; // -1 means unlimited (premium user)
+
+    // Get the stored usage data
+    const usageData = await AsyncStorage.getItem('chanceCalculatorUsage');
+    if (!usageData) return 10; // Default to full usage if no data
+
+    const { date, count } = JSON.parse(usageData);
+    const today = new Date().toDateString();
+
+    // If it's a new day, reset the counter
+    if (date !== today) {
+      await AsyncStorage.setItem('chanceCalculatorUsage', JSON.stringify({
+        date: today,
+        count: 10
+      }));
+      return 10;
+    }
+
+    return count;
+  } catch (error) {
+    console.error('Error getting chances use count:', error);
+    return 0;
+  }
+}
+
+export const decrementChancesUseCount = async () => {
+  try {
+    // For premium users, don't decrement
+    const data = await getUserData();
+    if (data?.isPremium) return -1;
+
+    const today = new Date().toDateString();
+    const usageData = await AsyncStorage.getItem('chanceCalculatorUsage');
+    
+    let currentCount = 10;
+    
+    if (usageData) {
+      const { date, count } = JSON.parse(usageData);
+      
+      // If same day, decrement the counter
+      if (date === today) {
+        currentCount = count;
+      }
+      // If different day, counter resets to default (10)
+    }
+    
+    // Don't go below 0
+    const newCount = Math.max(0, currentCount - 1);
+    
+    await AsyncStorage.setItem('chanceCalculatorUsage', JSON.stringify({
+      date: today,
+      count: newCount
+    }));
+    
+    return newCount;
+  } catch (error) {
+    console.error('Error decrementing chances use count:', error);
+    return 0;
+  }
+}
+
 
 export const keys = {
    FAVORITES_STORAGE_KEY: 'favorites'

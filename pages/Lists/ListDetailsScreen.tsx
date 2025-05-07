@@ -111,12 +111,12 @@ const ListDetailsScreen = () => {
                 <View style={styles.statItem}>
                   <CustomText style={styles.statLabel}>CET</CustomText>
                   <CustomText style={[styles.statValue, { color: '#4CAF50' }]}>
-                    {userData.counsellingData.cetMarks}%
+                    {userData.counsellingData.cetPercentile}%
                   </CustomText>
                   <CustomText style={styles.statLabel}>JEE</CustomText>
 
                   <CustomText style={[styles.statValue, { color: '#4CAF50' }]}>
-                    {userData.counsellingData.jeeMarks}%
+                    {userData.counsellingData.jeePercentile}%
                   </CustomText>
                 </View>
               )}

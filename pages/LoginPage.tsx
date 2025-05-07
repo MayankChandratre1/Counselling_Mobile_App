@@ -432,6 +432,16 @@ export const LoginScreen = ({navigation}:any) => {
                 </CustomText>
               )}
             </TouchableOpacity>
+            
+            {/* Add Forgot Password Link */}
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.forgotPasswordButton}
+            >
+              <CustomText style={styles.forgotPasswordText}>
+                Forgot Password?
+              </CustomText>
+            </TouchableOpacity>
           </View>
         </>
       );
@@ -665,5 +675,14 @@ const styles = StyleSheet.create({
   },
   resendTextDisabled: {
     color: '#999',
+  },
+  forgotPasswordButton: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+  },
+  forgotPasswordText: {
+    color: '#613EEA',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

@@ -314,7 +314,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
                       title={plan.title} 
                       price={plan.price.toLocaleString()} 
                       features={plan.benefits} 
-                      isPremium={plan.title.toLowerCase() === "counselling"}
+                      isPremium={true}
                       isLocked={plan.isLocked}
                       opensAt={plan.opensAt}
                       onGetStarted={onUpgrade}

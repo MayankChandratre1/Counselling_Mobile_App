@@ -8,6 +8,8 @@ import AntDesign from 'react-native-vector-icons/AntDesign'
 import { useFocusEffect } from '@react-navigation/native'
 import GetAdviceButton from './GetAdviceButton'
 import { expandCategory } from '../../utils/categoryCleaner'
+import { categories as _categories } from '../../data/categories'
+import ChancePredictorModal from './ChancePredictorModal';
 
 interface Cutoff {
     id: string;
@@ -25,6 +27,7 @@ interface Cutoff {
 
 interface CutoffTabProps {
   cutoffs: Cutoff[];
+  collegeData: any; // Replace with actual type if available  
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -72,18 +75,23 @@ const Chip = React.memo(({ item, selected, onSelect, label }: {
   </TouchableOpacity>
 ));
 
-const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
+const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs, collegeData }) => {
   // Initial state setup with sensible defaults
   const [filteredCutoffs, setFilteredCutoffs] = useState<Cutoff[]>([]);
   const [gender, setGender] = useState<string>('All');
-  const [selectedBranch, setSelectedBranch] = useState<string>('');
+  const [selectedBranch, setSelectedBranch] = useState<{
+    name: string;
+    code: string;
+  }>({ name: '', code: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
   const [selectedCapRound, setSelectedCapRound] = useState<string>('');
+  const [booleanFilters, setBooleanFilters] = useState<{ [key: string]: boolean }>({});
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState<number>(0);
   const [tableLoading, setTableLoading] = useState<boolean>(true);
   const [initialized, setInitialized] = useState<boolean>(false);
+  const [showChancePredictorModal, setShowChancePredictorModal] = useState<boolean>(false);
 
   // Memoized derived data to prevent recalculation on every render
   const {
@@ -96,8 +104,9 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
     defaultYear
   } = useMemo(() => {
     // Extract unique values and sort them for consistency
-    const branchList = Array.from(new Set(cutoffs.map(c => c.branchName))).sort();
-    const categoryList = Array.from(new Set(cutoffs.map(c => c.Category))).sort();
+    //make this unique and sort
+    const branchList = collegeData.branches.map((c:any) => ({name: c.branchName, code: c.branchCode}));
+    const categoryList = _categories
     const yearList = Array.from(new Set(cutoffs.map(c => c.year))).filter(Boolean) as number[];
     yearList.sort((a, b) => b - a); // Sort years in descending order
     const roundList = Array.from(new Set(cutoffs.map(c => c.capRound))).sort();
@@ -107,7 +116,13 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
       categories: categoryList,
       years: yearList,
       capRounds: roundList,
-      defaultBranch: branchList.length > 0 ? branchList[0] : '',
+      defaultBranch: branchList.length > 0 ? {
+        name: branchList[0].name,
+        code: branchList[0].code
+      } : {
+        name: '',
+        code: ''
+      },
       defaultCapRound: roundList.length > 0 ? roundList[0] : '',
       defaultYear: yearList.length > 0 ? Math.max(...yearList) : undefined
     };
@@ -122,7 +137,11 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
   // Initialize defaults only once
   useEffect(() => {
     if (!initialized && cutoffs.length > 0) {
-      setSelectedBranch(defaultBranch);
+      setSelectedBranch({
+        name: defaultBranch.name,
+        code: defaultBranch.code
+      });
+       // Assuming branch code is same as branch name for now
       setSelectedCapRound(defaultCapRound);
       setSelectedYear(defaultYear);
       setInitialized(true);
@@ -138,19 +157,22 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
     // Perform filtering immediately instead of using setTimeout
     const filtered = cutoffs.filter(c => {
       // Branch filter is always applied
-      if (c.branchName !== selectedBranch) return false;
+      if (c.branchName !== selectedBranch.name) return false;
       
       // Only check other filters if they're set
       if (gender !== 'All') {
-        const isLadies = c.Category && c.Category.includes('L');
+        const isLadies = c.Category && c.Category.includes('L') ;
         if ((gender === 'Female' && !isLadies) || (gender === 'Male' && isLadies)) {
           return false;
         }
       }
       
-      if (selectedCategory && c.Category !== selectedCategory) return false;
+      if (selectedCategory && !c.Category.includes(selectedCategory)) return false;
       if (selectedYear && c.year !== selectedYear) return false;
       if (selectedCapRound && c.capRound !== selectedCapRound) return false;
+
+      if(booleanFilters['Physical Disability'] && !c.Category.includes('PWD')) return false;
+      if(booleanFilters['Defense'] && !c.Category.includes('DEF')) return false;
       
       return true;
     });
@@ -159,11 +181,11 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
     setFilteredCutoffs(filtered);
     setActiveFiltersCount(
       (gender !== 'All' ? 1 : 0) + 
-      (selectedCategory ? 1 : 0)
+      (selectedCategory ? 1 : 0) + (booleanFilters['Physical Disability'] ? 1 : 0) + (booleanFilters['Defense'] ? 1 : 0)
     );
     setTableLoading(false);
     
-  }, [gender, selectedBranch, selectedCategory, selectedYear, selectedCapRound, cutoffs, initialized]);
+  }, [gender, selectedBranch, selectedCategory, selectedYear, selectedCapRound, cutoffs, initialized, booleanFilters]);
 
   // Reset the component when it comes into focus
   useFocusEffect(
@@ -178,6 +200,7 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
   const clearFilters = useCallback(() => {
     setGender('All');
     setSelectedCategory('');
+    setBooleanFilters({})
   }, []);
 
   // Get formatted display of applied filters - memoized
@@ -185,10 +208,12 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
     const filters = [];
     if (gender !== 'All') filters.push(gender);
     if (selectedCategory) filters.push(selectedCategory);
+    if(booleanFilters['Physical Disability']) filters.push('Physical Disability');
+    if(booleanFilters['Defense']) filters.push('Defense');
     
     if (filters.length === 0) return 'No filters applied';
     return filters.join(' • ');
-  }, [gender, selectedCategory]);
+  }, [gender, selectedCategory, booleanFilters]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -205,7 +230,7 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
                   numberOfLines={2}
                   ellipsizeMode="tail"
                 >
-                  {selectedBranch}
+                  {selectedBranch.name || 'Select a branch'}
                 </CustomText>
               </View>
             </View>
@@ -229,10 +254,10 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pillsContainer}
           >
-            {branches.map((branch) => (
+            {branches.map((branch:any, index:number) => (
               <Pill 
-                key={branch}
-                item={branch}
+                key={index}
+                item={branch.name}
                 selected={selectedBranch === branch}
                 onSelect={() => setSelectedBranch(branch)}
                 label={`Select ${branch} branch`}
@@ -301,6 +326,18 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
             </TouchableOpacity>
           </View>
         )}
+
+<View style={styles.predictButtonContainer}>
+          <TouchableOpacity 
+            style={styles.predictButton}
+            onPress={() => setShowChancePredictorModal(true)}
+          >
+            <Icon name="trophy" size={22} color="#fff" style={styles.predictButtonIcon} />
+            <CustomText style={styles.predictButtonText}>
+              Predict My Chances for {(()=>(selectedBranch.name?.length > 20 ? `${selectedBranch.name.substring(0,15)}...`:selectedBranch.name))() || 'this branch'}
+            </CustomText>
+          </TouchableOpacity>
+        </View>
         
         {/* Cutoff Table */}
         <View style={styles.tableContainer}>
@@ -394,6 +431,36 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
                       </Picker>
                     </View>
                   </View>
+
+                  <View style={styles.filterSection}>
+                    <CustomText style={styles.filterSectionTitle}>Special Filters</CustomText>
+                    <View style={styles.optionsContainer}>
+                      {['Physical Disability', 'Defense'].map((option) => (
+                        <TouchableOpacity
+                          key={option}
+                          style={[
+                            styles.optionButton,
+                           booleanFilters[option] && styles.selectedOptionButton
+                          ]}
+                          onPress={() => setBooleanFilters(prev => ({
+                            ...prev,
+                            [option]: !prev[option]
+                          }))}
+                          accessibilityLabel={`Select ${option}`}
+                          accessibilityState={{ selected: booleanFilters[option] }}
+                        >
+                          <CustomText 
+                            style={[
+                              styles.optionText,
+                              booleanFilters[option] && styles.selectedOptionText
+                            ]}
+                          >
+                            {option}
+                          </CustomText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
                 </ScrollView>
 
                 <View style={styles.modalFooter}>
@@ -417,6 +484,14 @@ const CutoffTab: React.FC<CutoffTabProps> = ({ cutoffs }) => {
             </View>
           </Modal>
         )}
+       
+        
+        <ChancePredictorModal
+          visible={showChancePredictorModal}
+          onClose={() => setShowChancePredictorModal(false)}
+          collegeData={collegeData} // Pass your college data here
+          selectedBranch={selectedBranch.code} // Pass the selected branch code here
+        />
       </View>
     </SafeAreaView>
   );
@@ -781,6 +856,31 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 14,
+  },
+  predictButtonContainer: {
+    marginBottom: 10,
+  },
+  predictButton: {
+    backgroundColor: '#371981',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#613EEA50',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  predictButtonIcon: {
+    marginRight: 8,
+  },
+  predictButtonText: {
+    color: '#fff',
+    fontWeight: '600',
     fontSize: 14,
   },
 });

@@ -117,7 +117,7 @@ const CollegeDetails = () => {
       
       case "Cutoff":
         return college?.instituteCode && cutoffs && cutoffs.length > 0 ? (
-          <CutoffTab cutoffs={cutoffs} />
+          <CutoffTab collegeData={college} cutoffs={cutoffs} />
         ) : (
           <Text style={styles.noDataText}>No cutoff data available</Text>
         );

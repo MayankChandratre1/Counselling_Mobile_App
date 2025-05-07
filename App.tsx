@@ -32,10 +32,12 @@ import Counselling from './pages/Counselling';
 import ContactButton from './components/Contact/ContactButton';
 import DynamicContentScreen from './pages/DynamicTabScreen';
 import { DynamicTabProvider } from './contexts/DynamicTabContext';
+import ForgotPassword from './pages/ForgotPassword';
 
 type RootStackParamList = {
   Onboarding: { step: number };
   Login: undefined;
+  ForgotPassword: undefined;
   Home: {isPremium: boolean}; 
   Notification: undefined;
   PlanDetails: {
@@ -324,6 +326,7 @@ const App = () => {
                       initialParams={{ step: 1 }}
                     />
                     <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
                     <Stack.Screen name="Notification" component={Notification} />
                     <Stack.Screen name="PlanDetails" component={PlanDetails} />
                     <Stack.Screen name="RegistrationForm" component={RegistrationForm} />
@@ -333,6 +336,7 @@ const App = () => {
                 ) : (
                   <>
                     <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
                     <Stack.Screen name="Notification" component={Notification} />
                     <Stack.Screen name="CollegeDetails" component={CollegeDetails} />
                     <Stack.Screen name="PlanDetails" component={PlanDetails} />

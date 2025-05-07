@@ -49,6 +49,8 @@ const InputWithLabel = ({ label, error, ...props }:any) => {
         <CustomText style={styles.label}>{label}</CustomText>
         {props.required && <Text style={styles.required}>*</Text>}
       </View>
+        <CustomText style={{width: '100%', fontSize: 12, color: colors.text}}>
+              {props.additionalRemarks}</CustomText>
       <CustomTextInput
         style={[
           styles.input, 
@@ -199,6 +201,7 @@ interface FormField {
   required: boolean;
   options?: string[];
   editable?: boolean;
+  additionalRemarks?: string;
 }
 
 interface FormStep {
@@ -389,16 +392,22 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
       return null;
     }
 
+    
+
     switch (field.type) {
       case 'date':
         return (
+          <>
           <DateInput
             label={field.label}
             value={formData[field.key]}
             onChangeText={(text: string) => handleInputChange(field.key, text)}
             required={field.required}
             error={errors[field.key]}
-          />
+            />
+            <CustomText style={styles.termsText}>
+              {field.additionalRemarks}</CustomText>
+          </>
         );
     
       case 'select':
@@ -426,12 +435,12 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
                     key={option} 
                     label={option} 
                     value={option} 
-                    color={colors.text}
-                    style={{ fontFamily: FONTS.REGULAR }}
                   />
                 ))}
               </Picker>
             </View>
+            <CustomText style={styles.termsText}>
+            {field.additionalRemarks}</CustomText>
             {errors[field.key] && <Text style={styles.errorText}>{errors[field.key]}</Text>}
           </View>
         );
@@ -451,11 +460,14 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
               )}
             </TouchableOpacity>
             <CustomText style={styles.termsText}>{field.label}</CustomText>
+            <CustomText style={styles.termsText}>
+              {field.additionalRemarks}</CustomText>
           </View>
         );
 
       default:
         return (
+          <>
           <InputWithLabel
             label={field.label}
             value={formData[field.key]?.toString()}
@@ -466,7 +478,10 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
             editable={field.editable !== false}
             required={field.required}
             error={errors[field.key]}
+            additionalRemarks={field.additionalRemarks}
           />
+          
+          </>
         );
     }
   };
@@ -735,7 +750,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     fontFamily: FONTS.REGULAR,
-    color: '#333',
+    color: '#333'
   },
   errorText: {
     color: '#FF5252',
@@ -751,7 +766,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   termsText: {
-    color: '#666',
+    color: '#000',
     flex: 1,
     fontSize: 14,
     lineHeight: 20,

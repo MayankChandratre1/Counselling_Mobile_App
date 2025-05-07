@@ -16,6 +16,7 @@ import CustomText from '../../components/General/CustomText'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5'
 import { FONTS } from '../../styles/typography'
+import { getUserData } from '../../utils/storage'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,7 +30,15 @@ const MyLists = ({ navigation }:any) => {
     const fetchLists = async () => {
         try {
             setError(null);
-            const response = await secureRequest<any>(`${config.USER_API}/lists`, RequestMethod.GET);
+            const userData = await getUserData()
+            const response = await secureRequest<any>(`${config.USER_API}/lists/${userData.phone}`, RequestMethod.GET);
+            console.log(`${config.USER_API}/lists/${userData.phone}`);
+            
+           if(!response.data){
+              setLists([]);
+              return;
+           }
+            
             
             // Sort lists by updatedAt in descending order
             const sortedLists = response.data.sort((a: any, b: any) => 
@@ -126,7 +135,7 @@ const MyLists = ({ navigation }:any) => {
             <FontAwesome5 name="clipboard-list" size={80} color="#ddd" />
             <CustomText style={styles.emptyTitle}>No Lists Found</CustomText>
             <CustomText style={styles.emptyText}>
-                You haven't created any college lists yet. Your counsellor will help you create lists.
+                Your counsellor will help you create lists.
             </CustomText>
             
             <TouchableOpacity style={styles.browseButton} onPress={() => navigation.navigate('Browse')}>
