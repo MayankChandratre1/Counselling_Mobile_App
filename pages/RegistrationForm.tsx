@@ -327,16 +327,10 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
     try {
       setSubmitting(true);
       const user = await getUserData();
-      const endpoint = route.params?.isUpdatePlanDetails ? 
-        `${config.USER_API}/${user.id}/premium` :
-        `${config.USER_API}/${user.id}/updateCounsellingData`;
+      const endpoint = `${config.USER_API}/${user.id}/updateCounsellingData`;
       
-      const method = route.params?.isUpdatePlanDetails ? 'PATCH' : 'PUT';
-      const body = route.params?.isUpdatePlanDetails ? {
-        planTitle: planDetails.plan,
-        expiryDate: new Date(Date.now() + 30*24*60*60*1000),
-        registrationData: formData
-      } : {
+      const method ='PUT';
+      const body ={
         registrationData: formData
       };
 
@@ -346,16 +340,12 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
 
       if (error) throw new Error(error);
       
-      if (!!route.params?.isUpdatePlanDetails) {
-        Alert.alert('Success', 'Please Log out and Log in again to refresh account!', [
-          { text: 'OK', onPress: () => navigation.navigate('Home', { refresh: true }) }
-        ]);
-      } else {
+      
         navigation.navigate({
           name: 'Home',
           params: { screen: 'Counselling' },
         });
-      }
+      
     } catch (err) {
       Alert.alert('Error', 'Failed to update data');
     } finally {

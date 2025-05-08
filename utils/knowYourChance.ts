@@ -82,9 +82,9 @@ export function calculateChances(
   // Add PWD patterns if applicable
   if (userInput.isPWD) {
     prefixes.forEach(prefix => {
-      categoryPatterns.push(`PWD${prefix}${baseCategory}`);
+      categoryPatterns.push(`PWD${baseCategory}`);
       suffixes.forEach(suffix => {
-        categoryPatterns.push(`PWD${prefix}${baseCategory}${suffix}`);
+        categoryPatterns.push(`PWD${baseCategory}${suffix}`);
       });
     });
   }
@@ -92,9 +92,9 @@ export function calculateChances(
   // Add Defense patterns if applicable
   if (userInput.isDefense) {
     prefixes.forEach(prefix => {
-      categoryPatterns.push(`DEF${prefix}${baseCategory}`);
+      categoryPatterns.push(`DEF${baseCategory}`);
       suffixes.forEach(suffix => {
-        categoryPatterns.push(`DEF${prefix}${baseCategory}${suffix}`);
+        categoryPatterns.push(`DEF${baseCategory}${suffix}`);
       });
     });
   }

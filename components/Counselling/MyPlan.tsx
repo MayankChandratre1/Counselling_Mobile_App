@@ -149,7 +149,11 @@ const MyPlan = () => {
           Contact your counsellor for any questions about your premium plan or to renew your subscription.
         </CustomText>
         
-        <TouchableOpacity style={styles.supportButton}>
+        <TouchableOpacity style={styles.supportButton}
+          onPress={()=>{
+            navigation.navigate("Contact")
+          }}
+        >
           <MaterialIcons name="contact-support" size={20} color="#fff" />
           <CustomText style={styles.supportButtonText}>Contact Support</CustomText>
         </TouchableOpacity>

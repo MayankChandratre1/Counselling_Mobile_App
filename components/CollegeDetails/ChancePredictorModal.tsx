@@ -18,9 +18,10 @@ import { Picker } from '@react-native-picker/picker';
 import { FONTS } from '../../styles/typography';
 import { calculateChances } from '../../utils/knowYourChance';
 import { categories } from '../../data/categories';
-import { getPremiumStatus, getChancesUseCount, decrementChancesUseCount } from '../../utils/storage';
+import { getPremiumStatus, getChancesUseCount, decrementChancesUseCount, getUserData } from '../../utils/storage';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { set } from 'date-fns';
 
 interface ChancePredictorModalProps {
   visible: boolean;
@@ -88,7 +89,7 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
     if (!visible) {
       resetForm();
     }
-    console.log(selectedBranch);
+    
     
   }, [visible]);
 
@@ -98,6 +99,25 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
       checkPremiumAndUsage();
     }
   }, [visible]);
+
+  useEffect(()=>{
+    
+      const updateWithUserDetails = async ()=>{
+        console.log('Updating with user details...');
+        
+          const userData = await getUserData();
+          if(userData.counsellingData.cetMarks || userData.counsellingData.cetPercentile){
+              setPercentile(userData.counsellingData.cetPercentile);
+              setExpectedMarks(userData.counsellingData.cetMarks);
+              setSelectedCategory(userData.counsellingData.category);
+              setIsDefense(userData.counsellingData.isDefense == "YES");
+              setIsPWD(userData.counsellingData.isPWD == "YES");
+          }
+      }
+    if (visible) {
+      updateWithUserDetails()
+    }
+  },[visible])
 
   const checkPremiumAndUsage = async () => {
     try {
@@ -372,16 +392,7 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
                     />
                   </View>
                   
-                  <View style={styles.inputGroup}>
-                    <CustomText style={styles.inputLabel}>Rank</CustomText>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your rank"
-                      keyboardType="number-pad"
-                      value={rank}
-                      onChangeText={setRank}
-                    />
-                  </View>
+                  
                 </View>
               ) : (
                 <View style={styles.formSection}>

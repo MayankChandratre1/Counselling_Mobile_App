@@ -57,6 +57,7 @@ interface PlanCardProps {
   isPremium: boolean;
   isLocked?: boolean;
   opensAt?: Timestamp;
+  form: string
   onGetStarted: (planDetails: any) => void;
 }
 
@@ -67,7 +68,7 @@ interface CounsellingCardsProps {
   features: string[];
 }
 
-const PlanCard = ({ title, price, features, isPremium, isLocked = false, opensAt, onGetStarted }: PlanCardProps) => {
+const PlanCard = ({ title, price, features, isPremium, isLocked = false, opensAt,form, onGetStarted }: PlanCardProps) => {
   // Determine how many features to show based on screen size
   const getVisibleFeatures = () => {
     if (SCREEN_HEIGHT < 600) return 2; // Very small screens
@@ -139,7 +140,7 @@ const PlanCard = ({ title, price, features, isPremium, isLocked = false, opensAt
           isPremium ? styles.premiumButton : styles.standardButton,
           isLocked && styles.lockedButton
         ]}
-        onPress={() => !isLocked && onGetStarted({ price, features, isPremium, title })}
+        onPress={() => !isLocked && onGetStarted({ price, features, isPremium, title, form })}
         disabled={isLocked}
         accessible={true}
         accessibilityLabel={isLocked ? 
@@ -316,6 +317,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
                       features={plan.benefits} 
                       isPremium={true}
                       isLocked={plan.isLocked}
+                      form={plan.form}
                       opensAt={plan.opensAt}
                       onGetStarted={onUpgrade}
                     />

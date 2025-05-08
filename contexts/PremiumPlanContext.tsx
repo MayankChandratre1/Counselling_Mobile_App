@@ -9,6 +9,7 @@ interface Plan {
   isLocked: boolean;
   opensAt?: PlanTimestamp;
   benefits: string[];
+  form: string;
 }
 
 interface PlansResponse {

@@ -84,6 +84,8 @@ const FreeDashboard = ({ navigation }: any) => {
   };
 
   const handleGetStarted = (planDetails: any) => {
+    console.log("Navigating to PlanDetails with planDetails:", planDetails);
+    setShowPlansModal(false);
     navigation.navigate('PlanDetails', planDetails)
   }
 

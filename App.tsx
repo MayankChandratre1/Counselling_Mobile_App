@@ -33,6 +33,7 @@ import ContactButton from './components/Contact/ContactButton';
 import DynamicContentScreen from './pages/DynamicTabScreen';
 import { DynamicTabProvider } from './contexts/DynamicTabContext';
 import ForgotPassword from './pages/ForgotPassword';
+import Password from './pages/Password';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -45,6 +46,7 @@ type RootStackParamList = {
     price: string;
     features: string[];
     isPremium: boolean;
+    form: string;
   };
   Counselling: {
     selectedPlan?: string;
@@ -68,6 +70,19 @@ type RootStackParamList = {
   Tab: {
     isPremium: boolean;};
   DynamicContentScreen: any
+  Password: {
+    route: {
+      params: {
+        planDetails: {
+          isPremium: boolean;
+          plan: string;
+          price: string;
+          expiry: number | null;
+        };
+      };
+    };
+    navigation: any;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -356,6 +371,8 @@ const App = () => {
                   <Stack.Screen name="ListDetails" component={ListDetailsScreen} />
                   <Stack.Screen name="Contact" component={ContactPage} />
                   <Stack.Screen name="DynamicContentScreen" component={DynamicContentScreen} />
+                  {/* @ts-ignore */}
+                  <Stack.Screen name="Password" component={Password} />
 
               </Stack.Navigator>
               {isLoggedIn && !isPremium && <PremiumButton />}

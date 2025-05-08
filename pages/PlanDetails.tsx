@@ -14,6 +14,7 @@ type RootStackParamList = {
     price: string;
     features: string[];
     isPremium: boolean;
+    form:string
   };
   RegistrationForm: {
     planDetails: {
@@ -27,6 +28,14 @@ type RootStackParamList = {
   Counselling: {
     selectedPlan?: string;
   };
+  Password: {
+    planDetails: {
+      isPremium: boolean;
+      plan: string;
+      price: string;
+      expiry: number | null;
+    };
+  };
 };
 
 type PlanDetailsProps = NativeStackScreenProps<RootStackParamList, 'PlanDetails'>;
@@ -36,11 +45,12 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
-  const { title , price, features, isPremium } = {
+  const { title , price, features, isPremium, form } = {
     title: route.params?.title ?? "Free",
     price: route.params?.price ?? "0",
     features: route.params?.features ?? [],
     isPremium: !!route.params?.isPremium,
+    form: route.params?.form ?? "Free"
   }
 
   const handleConfirm = async () => {
@@ -54,7 +64,8 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
         isPremium: true,
         plan: title,
         price: price,
-        expiry: title == 'Premium' ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
+        expiry: 60 ,//days in number
+        form: form
       };
       
       // Create payload for the create-order API
@@ -111,9 +122,8 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
       await AsyncStorage.removeItem('tempPlanDetails');
       
       // Navigate to registration form
-      navigation.navigate('RegistrationForm', {
-        planDetails: planDetails,
-        isUpdatePlanDetails: true,
+      navigation.replace('Password', {
+        planDetails: planDetails
       });
     } catch (error) {
       console.error('Error handling payment success:', error);

@@ -5,6 +5,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import CustomText from '../General/CustomText'
 import { useNavigation } from '@react-navigation/native'
+import { secureRequest, RequestMethod } from '../../utils/tokenedRequest'
+import config from '../../configs/API'
 
 interface FormField {
   label: string;
@@ -26,7 +28,7 @@ interface ProfileFormProps {
 const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsellingData, onUpdate }) => {
   const navigation = useNavigation<any>();
   const [fields, setFields] = useState<FormField[]>([
-    { label: 'Name', key: 'name', value: '', isEditing: false, isPremiumField: false, icon: 'account-outline', nonEditable: isPremium },
+    { label: 'Name', key: 'name', value: '', isEditing: false, isPremiumField: false, icon: 'account-outline' },
     { label: 'Phone', key: 'phone', value: '', isEditing: false, isPremiumField: false, icon: 'phone-outline', nonEditable: true },
     { label: 'Email', key: 'email', value: '', isEditing: false, isPremiumField: false, icon: 'email-outline', nonEditable: true },
     { label: 'Marks in JEE', key: 'jeeMarks', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline' },
@@ -61,7 +63,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
   };
 
   const toggleEdit = (index: number) => {
-    if (isPremium || fields[index].nonEditable) return; // Prevent editing if premium or nonEditable
+    if (fields[index].nonEditable) return; // Only prevent editing for nonEditable fields
     
     const newFields = [...fields];
     newFields[index].isEditing = !newFields[index].isEditing;
@@ -84,13 +86,45 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
   const saveField = async (key: string, value: string) => {
     try {
       setIsSaving(true);
-      await storeUserData({ 
-        ...userData,
-        counsellingData:{
+      
+      // For free users, just update local storage
+      if (!isPremium) {
+        await storeUserData({ 
+          ...userData,
+          [key]: value 
+        });
+      } 
+      // For premium users, update local storage AND send to backend
+      else {
+        // First update local storage
+        const updatedCounsellingData = {
           ...counsellingData,
           [key]: value
+        };
+        
+        await storeUserData({ 
+          ...userData,
+          counsellingData: updatedCounsellingData
+        });
+        
+        // Then send to backend
+        const user = await getUserData();
+        if (user?.id) {
+          await secureRequest(
+            `${config.USER_API}/${user.id}/updateCounsellingData`,
+            RequestMethod.PUT,
+            {
+              body: {
+                registrationData: {
+                  ...counsellingData,
+                  [key]: value
+                }
+              }
+            }
+          );
         }
-       });
+      }
+      
       setHasChanges(false);
       onUpdate(); // Refresh parent data
     } catch (error) {
@@ -105,14 +139,56 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
       setIsSaving(true);
       
       // Collect all editable fields into an object
-      const updatedData = fields.reduce((acc, field) => {
-        if (!field.nonEditable && !isPremium) {
-          acc[field.key] = field.value;
-        }
-        return acc;
-      }, {} as Record<string, string>);
+      const updatedData: Record<string, string> = {};
+      const updatedPremiumData: Record<string, string> = {};
       
-      await storeUserData(updatedData);
+      fields.forEach(field => {
+        if (!field.nonEditable) {
+          if (field.isPremiumField) {
+            updatedPremiumData[field.key] = field.value;
+          } else {
+            updatedData[field.key] = field.value;
+          }
+        }
+      });
+      
+      if (!isPremium) {
+        // For free users, just update local storage
+        await storeUserData({
+          ...userData,
+          ...updatedData,
+          ...updatedPremiumData
+        });
+      } else {
+        // For premium users, update local storage and send to backend
+        const updatedCounsellingData = {
+          ...counsellingData,
+          ...updatedPremiumData
+        };
+        
+        await storeUserData({
+          ...userData,
+          ...updatedData,
+          counsellingData: updatedCounsellingData
+        });
+        
+        // Send to backend
+        const user = await getUserData();
+        if (user?.id) {
+          await secureRequest(
+            `${config.USER_API}/${user.id}/updateCounsellingData`,
+            RequestMethod.PUT,
+            {
+              body: {
+                registrationData: {
+                  ...counsellingData,
+                  ...updatedPremiumData
+                }
+              }
+            }
+          );
+        }
+      }
       
       // Reset all editing states
       setFields(fields.map(field => ({
@@ -148,7 +224,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
               <CustomText style={styles.label}>{field.label}</CustomText>
             </View>
             
-            {!field.nonEditable && !isPremium && (
+            {!field.nonEditable && (
               <TouchableOpacity 
                 onPress={() => toggleEdit(index)}
                 disabled={isSaving}
@@ -178,19 +254,19 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
               ]}
               value={field.value}
               onChangeText={(value) => updateField(index, value)}
-              editable={field.isEditing && !field.nonEditable && !isPremium}
+              editable={field.isEditing && !field.nonEditable}
               placeholder={`Enter your ${field.label.toLowerCase()}...`}
               placeholderTextColor="#AAA"
             />
             
-            {(field.nonEditable || isPremium) && (
+            {field.nonEditable && (
               <Icon name="lock" size={16} color="#AAA" style={styles.lockIcon} />
             )}
           </View>
         </View>
       ))}
       
-      {!isPremium && hasChanges && (
+      {hasChanges && (
         <TouchableOpacity 
           style={styles.saveAllButton} 
           onPress={handleSaveAll}
@@ -212,7 +288,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
           <View style={styles.premiumNote}>
             <Icon name="info-outline" size={16} color="#371981" />
             <CustomText style={styles.premiumNoteText}>
-              As a premium user, your profile is managed in Registration Form.
+              As a premium user, you can edit your profile directly here or in the Registration Form.
             </CustomText>
           </View>
           
@@ -221,7 +297,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
             onPress={handleEditInRegistrationForm}
           >
             <Icon name="edit" size={18} color="#FFFFFF" />
-            <CustomText style={styles.registrationButtonText}>Edit in Registration Form</CustomText>
+            <CustomText style={styles.registrationButtonText}>Advanced Editing in Registration Form</CustomText>
           </TouchableOpacity>
         </View>
       )}

@@ -109,6 +109,7 @@ const CounsellingForm = ({route}:any) => {
       const user = await getUserData()
       
       const response: any = await secureRequest(`${config.USER_API}/formdata/${user.phone}/${premiumPlan?.plan?.form ?? "Sarathi-Online"}`, RequestMethod.GET)
+      console.log(`${config.USER_API}/formdata/${user.phone}/${premiumPlan?.plan?.form ?? "Sarathi-Online"}`);
       
       if (response.data?.steps) {
         setStepsData(response.data.steps.reduce((acc: any, step: any) => {
