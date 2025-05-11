@@ -313,7 +313,7 @@ const CounsellingCards = ({ visible, onClose, onUpgrade, features }: Counselling
                     <PlanCard 
                       key={index}
                       title={plan.title} 
-                      price={plan.price.toLocaleString()} 
+                      price={plan.price.toLocaleString('en-IN')} 
                       features={plan.benefits} 
                       isPremium={true}
                       isLocked={plan.isLocked}
@@ -483,7 +483,8 @@ const styles = StyleSheet.create({
     fontSize: SCREEN_WIDTH < 360 ? 24 : 28,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: SCREEN_HEIGHT < 700 ? 10 : 15,
+    marginBottom: SCREEN_HEIGHT < 700 ? 15 : 15,
+    paddingBottom: 8,
   },
   featuresContainer: {
     marginBottom: SCREEN_HEIGHT < 700 ? 12 : 18,

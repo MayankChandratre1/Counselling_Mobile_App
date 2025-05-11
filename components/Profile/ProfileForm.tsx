@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { StyleSheet, View, TextInput, TouchableOpacity, ActivityIndicator, Modal, Platform } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { getUserData, storeUserData } from '../../utils/storage'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
@@ -7,6 +7,8 @@ import CustomText from '../General/CustomText'
 import { useNavigation } from '@react-navigation/native'
 import { secureRequest, RequestMethod } from '../../utils/tokenedRequest'
 import config from '../../configs/API'
+import { categories } from '../../data/categories'
+import { Picker } from '@react-native-picker/picker'
 
 interface FormField {
   label: string;
@@ -16,6 +18,10 @@ interface FormField {
   isPremiumField: boolean;
   icon: string;
   nonEditable?: boolean;
+  type?: string; // Added type property for select fields
+  options?: Array<string>; // Added options property for select fields
+  min?: number; // Added min property for number fields
+  max?: number; // Added max property for number fields
 }
 
 interface ProfileFormProps {
@@ -31,14 +37,18 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
     { label: 'Name', key: 'name', value: '', isEditing: false, isPremiumField: false, icon: 'account-outline' },
     { label: 'Phone', key: 'phone', value: '', isEditing: false, isPremiumField: false, icon: 'phone-outline', nonEditable: true },
     { label: 'Email', key: 'email', value: '', isEditing: false, isPremiumField: false, icon: 'email-outline', nonEditable: true },
-    { label: 'Marks in JEE', key: 'jeeMarks', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline' },
-    { label: 'Percentile in JEE', key: 'jeePercentile', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline' },
-    { label: 'Marks in CET', key: 'cetMarks', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline' },
-    { label: 'Percentile in CET', key: 'cetPercentile', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline' },
-    { label: 'Preferred Location', key: 'prefferedlocation', value: '', isEditing: false, isPremiumField: true, icon: 'map-outline' },
+    { label: 'Marks in JEE', key: 'jeeMarks', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline', type:'number', min: 0, max: 300 },
+    { label: 'Percentile in JEE', key: 'jeePercentile', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline', type:'number', min: 0, max: 100 },
+    { label: 'Marks in CET', key: 'cetMarks', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline', type:'number', min: 0, max: 150 },
+    { label: 'Percentile in CET', key: 'cetPercentile', value: '', isEditing: false, isPremiumField: true, icon: 'school-outline', type:'number', min: 0, max: 100 },
+    { label: 'Preferred Location', key: 'preferredLocations', value: '', isEditing: false, isPremiumField: true, icon: 'map-outline' },
+    { label: 'Category', key: 'category', value: '', isEditing: false, isPremiumField: true, icon: 'account-check-outline', type:'select', options: categories},
+    { label: 'Physical Disability', key: 'isPwd', value: '', isEditing: false, isPremiumField: true, icon: 'human-wheelchair', type:'select', options: ["YES", "NO"]},
+    { label: 'Defense Parent/Guardian', key: 'isDefense', value: '', isEditing: false, isPremiumField: true, icon: 'shield-account', type:'select', options: ["YES", "NO"]},
   ]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [showPicker, setShowPicker] = useState<number | null>(null);
 
   useEffect(() => {
     loadFieldData();
@@ -50,7 +60,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
     const newFields = [...fields];
     
     newFields.forEach((field, index) => {
-      if ( field.isPremiumField && counsellingData) {
+      if (field.isPremiumField && counsellingData) {
         // For premium users, get data from counsellingData for premium fields
         newFields[index].value = counsellingData[field.key] || '';
       } else {
@@ -77,6 +87,25 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
   };
 
   const updateField = (index: number, value: string) => {
+    // Validate number inputs
+    if (fields[index].type === 'number') {
+      const numValue = Number(value);
+      
+      // Only allow numeric input
+      if (value !== '' && isNaN(numValue)) {
+        return;
+      }
+      
+      // Check min/max bounds
+      if (value !== '' && fields[index].min !== undefined && numValue < fields[index].min) {
+        return;
+      }
+      
+      if (value !== '' && fields[index].max !== undefined && numValue > fields[index].max) {
+        return;
+      }
+    }
+    
     const newFields = [...fields];
     newFields[index].value = value;
     setFields(newFields);
@@ -89,10 +118,19 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
       
       // For free users, just update local storage
       if (!isPremium) {
+         const updatedCounsellingData = {
+          ...counsellingData,
+          [key]: value
+        };
         await storeUserData({ 
           ...userData,
-          [key]: value 
+          counsellingData: updatedCounsellingData
         });
+        console.log('Updated Counselling Data:', { 
+          ...userData,
+          counsellingData: updatedCounsellingData
+        });
+        
       } 
       // For premium users, update local storage AND send to backend
       else {
@@ -154,17 +192,24 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
       
       if (!isPremium) {
         // For free users, just update local storage
+         console.log('Updated Counselling Data:', updatedPremiumData);
         await storeUserData({
           ...userData,
           ...updatedData,
-          ...updatedPremiumData
+          counsellingData: {
+            ...counsellingData,
+            ...updatedPremiumData
+          }
         });
+       
       } else {
         // For premium users, update local storage and send to backend
         const updatedCounsellingData = {
           ...counsellingData,
           ...updatedPremiumData
         };
+
+        
         
         await storeUserData({
           ...userData,
@@ -209,6 +254,139 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
     navigation.navigate('RegistrationForm');
   };
 
+  // Render proper input based on field type
+  const renderFieldInput = (field: FormField, index: number) => {
+    if (field.type === 'select' && field.options) {
+      // If on iOS, use modal picker approach
+      if (Platform.OS === 'ios') {
+        return (
+          <>
+            
+            <TouchableOpacity 
+              style={[
+                styles.input,
+                // @ts-ignore
+                !field.isEditing && styles.inputDisabled,
+                // @ts-ignore
+                field.nonEditable && styles.inputDisabled,
+                // @ts-ignore
+                isPremium && field.isPremiumField && styles.inputPremium
+              ]}
+              onPress={() => field.isEditing && setShowPicker(index)}
+              disabled={!field.isEditing || field.nonEditable}
+            >
+              <CustomText style={[
+                styles.inputText,
+                !field.value && styles.inputPlaceholder,
+                !field.isEditing && styles.inputDisabled,
+                field.nonEditable && styles.inputDisabled,
+                isPremium && field.isPremiumField && styles.inputPremium
+              ]}>
+                {field.value || `Select ${field.label.toLowerCase()}...`}
+              </CustomText>
+            </TouchableOpacity>
+
+            {/* Modal picker for iOS */}
+            {showPicker === index && (
+              <Modal
+                visible={true}
+                transparent={true}
+                animationType="slide"
+              >
+                <View style={styles.pickerModalOverlay}>
+                  <View style={styles.pickerModalContainer}>
+                    <View style={styles.pickerModalHeader}>
+                      <TouchableOpacity onPress={() => setShowPicker(null)}>
+                        <CustomText style={styles.pickerModalCancel}>Cancel</CustomText>
+                      </TouchableOpacity>
+                      <CustomText style={styles.pickerModalTitle}>{field.label}</CustomText>
+                      <TouchableOpacity onPress={() => setShowPicker(null)}>
+                        <CustomText style={styles.pickerModalDone}>Done</CustomText>
+                      </TouchableOpacity>
+                    </View>
+                    <Picker
+                      selectedValue={field.value}
+                      onValueChange={(value) => updateField(index, value)}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label={`Select ${field.label.toLowerCase()}...`} value="" />
+                      {field.options.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+              </Modal>
+            )}
+          </>
+        );
+      } else {
+        // For Android, use inline picker
+        return (
+          // @ts-ignore
+          <View style={[
+            styles.pickerContainer,
+            !field.isEditing && styles.inputDisabled,
+            field.nonEditable && styles.inputDisabled,
+            isPremium && field.isPremiumField && styles.inputPremium
+          ]}>
+            <Picker
+              selectedValue={field.value}
+              onValueChange={(value) => field.isEditing && updateField(index, value)}
+              enabled={field.isEditing && !field.nonEditable}
+              style={[
+                styles.picker,
+                !field.isEditing && styles.inputDisabled,
+                field.nonEditable && styles.inputDisabled,
+                isPremium && field.isPremiumField && styles.inputPremium
+              ]}
+              dropdownIconColor={field.isEditing ? "#371981" : "#AAA"}
+            >
+              <Picker.Item label={`Select ${field.label.toLowerCase()}...`} value="" />
+              {field.options.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+        );
+      }
+    } else if (field.type === 'number') {
+      return (
+        <TextInput
+          style={[
+            styles.input,
+            !field.isEditing && styles.inputDisabled,
+            field.nonEditable && styles.inputDisabled,
+            isPremium && field.isPremiumField && styles.inputPremium
+          ]}
+          value={field.value}
+          onChangeText={(value) => updateField(index, value)}
+          editable={field.isEditing && !field.nonEditable}
+          placeholder={`Enter ${field.label.toLowerCase()}...`}
+          placeholderTextColor="#AAA"
+          keyboardType="numeric"
+        />
+      );
+    } else {
+      // Default to regular text input
+      return (
+        <TextInput
+          style={[
+            styles.input,
+            !field.isEditing && styles.inputDisabled,
+            field.nonEditable && styles.inputDisabled,
+            isPremium && field.isPremiumField && styles.inputPremium
+          ]}
+          value={field.value}
+          onChangeText={(value) => updateField(index, value)}
+          editable={field.isEditing && !field.nonEditable}
+          placeholder={`Enter your ${field.label.toLowerCase()}...`}
+          placeholderTextColor="#AAA"
+        />
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       {fields.map((field, index) => (
@@ -245,19 +423,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ userData, isPremium, counsell
             isPremium && field.isPremiumField && styles.inputContainerPremium,
             field.nonEditable && styles.inputContainerLocked
           ]}>
-            <TextInput
-              style={[
-                styles.input, 
-                !field.isEditing && styles.inputDisabled,
-                field.nonEditable && styles.inputDisabled,
-                isPremium && field.isPremiumField && styles.inputPremium
-              ]}
-              value={field.value}
-              onChangeText={(value) => updateField(index, value)}
-              editable={field.isEditing && !field.nonEditable}
-              placeholder={`Enter your ${field.label.toLowerCase()}...`}
-              placeholderTextColor="#AAA"
-            />
+            {renderFieldInput(field, index)}
             
             {field.nonEditable && (
               <Icon name="lock" size={16} color="#AAA" style={styles.lockIcon} />
@@ -365,6 +531,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  inputText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  inputPlaceholder: {
+    color: '#AAA',
+  },
   inputDisabled: {
     color: '#666',
   },
@@ -422,5 +595,51 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     marginLeft: 10,
-  }
+  },
+  // Picker styles
+  pickerContainer: {
+    flex: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  picker: {
+    flex: 1,
+    height: 50,
+    color: '#000',
+  },
+  // Modal picker styles for iOS
+  pickerModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  pickerModalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: 'hidden',
+  },
+  pickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f8f8f8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  pickerModalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  pickerModalCancel: {
+    fontSize: 16,
+    color: '#999',
+  },
+  pickerModalDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#371981',
+  },
 });

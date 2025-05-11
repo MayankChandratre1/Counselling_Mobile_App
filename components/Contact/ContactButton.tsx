@@ -48,7 +48,7 @@ export default ContactButton;
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 160,
+    bottom: 90,
     right: 16,
     zIndex: 1000,
     elevation: 0,

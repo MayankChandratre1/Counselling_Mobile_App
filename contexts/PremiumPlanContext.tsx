@@ -123,14 +123,17 @@ export const PremiumPlanProvider: React.FC<PremiumPlanProviderProps> = ({ childr
       // If we don't have a user ID, try to get it
       if (!userId) {
         const userData = await getUserData();
-        userId = userData?.id;
+        userId = userData?.phone;
       }
       
       // Only fetch from API if we have a user ID
       if (userId) {
         const response = await secureRequest<any>(`${config.USER_API}/ispremium`, RequestMethod.POST, {
-          body: { userId }
+          body: { phone:userId }
         });
+        console.log(`${config.USER_API}/ispremium`, userId);
+        
+        console.log('Premium plan response:', response);
         
         if (response?.data) {
           setPremiumPlan(response.data);

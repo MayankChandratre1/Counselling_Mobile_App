@@ -248,14 +248,15 @@ const Home: React.FC<NavigationProps> = ({navigation}) => {
             <View style={styles.avatarContainer}>
               <TouchableOpacity
                 onPress={() => {
-                  navigation.replace('Password', {
-                    planDetails: {
-                      isPremium: true,
-                      plan: 'Sarathi Premium',
-                      price: '5999',
-                      expiry: 120,
-                    },
-                  });
+                  // navigation.replace('MyPayments', {
+                  //   planDetails: {
+                  //     isPremium: true,
+                  //     plan: 'Sarathi Premium',
+                  //     price: '5999',
+                  //     expiry: 120,
+                  //   },
+                  // });
+                  navigation.navigate('Profile');
                 }}>
                 <FontAwesome name="user-circle" size={40} color="#371981" />
               </TouchableOpacity>

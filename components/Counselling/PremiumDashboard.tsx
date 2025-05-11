@@ -1,10 +1,11 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getUserPlanData } from '../../utils/storage';
 import TopBar from '../General/TopBar';
 import { useNavigation } from '@react-navigation/native';
 import { useDynamicTabs, DynamicTabData } from '../../contexts/DynamicTabContext';
+import { usePremiumPlan } from '../../contexts/PremiumPlanContext';
 
 interface DashboardCard {
   title: string;
@@ -22,6 +23,7 @@ interface DashboardCard {
 const PremiumDashboard = () => {
   const navigation = useNavigation<any>();
   const [planTitle, setPlanTitle] = useState('');
+  const {currentPlan, refreshPlanData,isLoading} = usePremiumPlan()
   
   // Use the dynamic tabs hook with isPremium=true
   const { tabs: dynamicTabs, loading, error, refreshTabs } = useDynamicTabs(true);
@@ -30,7 +32,7 @@ const PremiumDashboard = () => {
     const initialize = async () => {
       // Get user plan info
       const plan = await getUserPlanData();
-      setPlanTitle(plan?.plan?.planTitle || 'Premium');
+      setPlanTitle(currentPlan || 'Premium');
     };
     
     initialize();
@@ -127,14 +129,19 @@ const PremiumDashboard = () => {
         url: card.url
       });
     } else if (card.route) {
-      navigation.navigate(card.route);
+      navigation.push(card.route);
     }
   };
 
   return (
     <>
       <TopBar heading="Dashboard" />
-      <ScrollView style={styles.container}>
+      <ScrollView 
+      style={styles.container}
+      refreshControl={
+                <RefreshControl refreshing={isLoading} onRefresh={refreshPlanData} />
+              }
+      >
         <Text style={styles.welcome}>Welcome to Your Dashboard</Text>
         
         {loading ? (

@@ -36,7 +36,6 @@ const MyPlan = () => {
     const fetchData = async () => {
       const data = await getUserData();
       setUserData(data);
-      refreshPlanData(data?.id);
     };
 
     fetchData();

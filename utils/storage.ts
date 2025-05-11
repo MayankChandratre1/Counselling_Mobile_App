@@ -24,13 +24,16 @@ export const storeUserData = async (userData: Partial<UserData>) => {
     await AsyncStorage.setItem('userData', JSON.stringify({
       ...userData,
     }));
-    await AsyncStorage.setItem('token', JSON.stringify({
+    if(userData.token) 
+   { await AsyncStorage.setItem('token', JSON.stringify({
       token: userData.token
-    }));
-    await AsyncStorage.setItem('plan', JSON.stringify({
+    }));}
+
+    if(userData.isPremium) 
+    {await AsyncStorage.setItem('plan', JSON.stringify({
       isPremium : userData.isPremium,
       plan: userData.isPremium ? userData.premiumPlan: null,
-    }));
+    }));}
 
     return true;
   } catch (error) {
@@ -73,6 +76,29 @@ export const getUserData = async () => {
     return null;
   }
 };
+
+export const refreshUserData:()=>Promise<UserData | null> = async () => {
+  try {
+    const userData = await getUserData();
+    if (!userData) return null;
+
+    const response = await secureRequest(
+      `${config.USER_API}/phone/${userData.phone}`,
+      RequestMethod.GET);
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    console.log('User data refreshed:', response.data);
+    
+    await storeUserData(response.data as Partial<UserData>);
+    return response.data as UserData;
+  } catch (error) {
+    console.error('Error refreshing user data:', error);
+    return null;
+  }
+}
+
 
 export const clearUserData = async () => {
   try {

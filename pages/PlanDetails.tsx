@@ -7,6 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import config from '../configs/API'
 import { RequestMethod, secureRequest } from '../utils/tokenedRequest'
 import PaymentModal from '../components/payments/PaymentModal'
+import { useNavigation } from '@react-navigation/native'
+import { getUserData } from '../utils/storage'
 
 type RootStackParamList = {
   PlanDetails: {
@@ -38,12 +40,13 @@ type RootStackParamList = {
   };
 };
 
-type PlanDetailsProps = NativeStackScreenProps<RootStackParamList, 'PlanDetails'>;
 
-const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
+
+const PlanDetails = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const navigator = useNavigation<any>()
   
   const { title , price, features, isPremium, form } = {
     title: route.params?.title ?? "Free",
@@ -56,8 +59,13 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
   const handleConfirm = async () => {
     setLoading(true);
     try {
+      const userData = await getUserData();
+      if (!userData) {
+        Alert.alert('Error', 'User data not found');
+        return;
+      }
       // Generate a random receipt string
-      const receipt = `receipt_${Math.random().toString(36).substring(2, 15)}`;
+      const receipt = `receipt_${userData.phone}_${Math.random().toString(36).substring(2, 15)}`;
       
       // Create plan details object
       const planDetails = {
@@ -75,7 +83,8 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
         notes: {
           planDetails: JSON.stringify(planDetails),
           planTitle: title,
-          customerPlan: title
+          customerPlan: title,
+          userPhone: userData.phone
         }
       };
       
@@ -122,8 +131,12 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
       await AsyncStorage.removeItem('tempPlanDetails');
       
       // Navigate to registration form
-      navigation.replace('Password', {
-        planDetails: planDetails
+      navigator.replace('ThankYou',{
+        planDetails: {
+          isPremium: true,
+          plan: title,
+          price: price,
+        },
       });
     } catch (error) {
       console.error('Error handling payment success:', error);
@@ -142,7 +155,7 @@ const PlanDetails = ({ route, navigation }: PlanDetailsProps) => {
 
         <View style={styles.featuresContainer}>
           <Text style={styles.sectionTitle}>What you'll get:</Text>
-          {features.map((feature, index) => (
+          {features.map((feature:any, index:number) => (
             <View key={index} style={styles.featureRow}>
               <Icon 
                 name={isPremium || index < 5 ? "check-circle" : "close-circle"} 

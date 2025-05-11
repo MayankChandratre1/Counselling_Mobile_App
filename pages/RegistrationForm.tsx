@@ -21,7 +21,7 @@ import { Picker } from '@react-native-picker/picker'
 import Icon from 'react-native-vector-icons/Ionicons'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 import config from '../configs/API'
-import { getUserData } from '../utils/storage'
+import { getUserData, storeUserData } from '../utils/storage'
 import { RequestMethod, secureRequest } from '../utils/tokenedRequest'
 import { FONTS } from '../styles/typography'
 import { globalStyles } from '../styles/globalStyles'
@@ -337,6 +337,13 @@ const RegistrationForm = ({ route, navigation }: RegistrationFormProps) => {
       const { data, error } = await secureRequest(endpoint, method as RequestMethod, {
         body
       });
+
+      if(data){
+        await storeUserData({
+          ...data
+        })
+        
+      }
 
       if (error) throw new Error(error);
       

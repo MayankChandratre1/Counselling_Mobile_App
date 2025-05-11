@@ -8,12 +8,8 @@ import { FONTS } from '../styles/typography';
 import CustomTextInput from '../components/General/CustomTextInput';
 import DeviceInfo from 'react-native-device-info';
 
-
 export const LoginScreen = ({navigation}:any) => {
   const [phone, setPhone] = useState('');
-  const [isPassword, setIsPassword] = useState(false);
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isFirstLogin, setIsFirstLogin] = useState(false);
@@ -72,21 +68,55 @@ export const LoginScreen = ({navigation}:any) => {
   };
 
   const getDeviceId = async () => {
-    const uniqueId = await DeviceInfo.getUniqueId(); // e.g., 'd65f7cfd29e34567a7f3fbb1f17a7ee3'
+    const uniqueId = await DeviceInfo.getUniqueId();
     return uniqueId;
   };
+
   // Format seconds to mm:ss
   const formatTime = (seconds: number) => {
     return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   };
   
-  // Validation and submission functions
+  // Validation functions
   const validatePhone = (phoneNumber: string) => {
     return phoneNumber.length === 10 && /^\d{10}$/.test(phoneNumber);
   };
 
   const validateOtp = (otpCode: string) => {
     return otpCode.length === 6 && /^\d{6}$/.test(otpCode);
+  };
+
+  const handleSendOtp = async () => {
+    if (!validatePhone(phone)) {
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const deviceId = await getDeviceId();
+      
+      const res = await fetch(`${config.USER_API}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone, deviceId })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setIsOtpScreen(true);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to send OTP');
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Error', 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResendOtp = async () => {
@@ -126,20 +156,31 @@ export const LoginScreen = ({navigation}:any) => {
     
     try {
       setLoading(true);
+      const deviceId = await getDeviceId();
+      
       const res = await fetch(`${config.USER_API}/verifyPhone`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify({ phone, otp, deviceId })
       });
       
       const data = await res.json();
       
       if (res.ok && data.verified) {
-        // OTP verified, move to name input
-        setIsOtpScreen(false);
-        setIsFirstLogin(true);
+        if (data.firstLogin) {
+          // New user - show name & email input screen
+          setIsOtpScreen(false);
+          setIsFirstLogin(true);
+        } else {
+          // Regular user - directly log them in
+          await clearUserData();
+          const stored = await storeUserData(data);
+          if (stored) {
+            navigation.replace('Home');
+          }
+        }
       } else {
         Alert.alert('Error', data.error || 'Invalid OTP');
       }
@@ -151,123 +192,37 @@ export const LoginScreen = ({navigation}:any) => {
     }
   };
 
-  const handleLogin = async () => {
-    if (!phone) {
-      Alert.alert('Error', 'Please enter your phone number');
-      return;
-    }
-    
-    if (!validatePhone(phone)) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const deviceId = await getDeviceId();
-      console.log("Device ID:", deviceId);
-      
-      const res = await fetch(`${config.USER_API}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ phone, password, deviceId })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        if (data.firstLogin) {
-          // New user - show OTP screen
-          setIsOtpScreen(true);
-        } else {
-          // Regular login success
-          await clearUserData();
-          const stored = await storeUserData(data);
-          if (stored) {
-            navigation.navigate('Home');
-          }
-        }
-      } else {
-        Alert.alert('Error', data.error || 'User not found');
-      }
-    } catch (error) {
-      console.log(error);
-      Alert.alert('Error', 'Failed to login');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const handleSubmitName = async () => {
-    if (!name.trim() && !email.trim()) {
-      Alert.alert('Error', 'Please enter your name and email');
+    if (!name.trim()) {
+      Alert.alert('Error', 'Please enter your name');
       return;
     }
     
     try {
       setLoading(true);
-      // Update user with name
+      // Update user with name and email
       const res = await fetch(`${config.USER_API}/updateName`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ phone, name,email })
+        body: JSON.stringify({ phone, name, email })
       });
       
       const data = await res.json();
-      console.log(data);
       
       if (res.ok) {
         await clearUserData();
         const stored = await storeUserData(data);
         if (stored) {
-          navigation.navigate('Home');
+          navigation.replace('Home');
         }
       } else {
-        Alert.alert('Error', data.error || 'Failed to update name');
+        Alert.alert('Error', data.error || 'Failed to update user details');
       }
     } catch (error) {
       console.log(error);
-      Alert.alert('Error', 'Failed to update name');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleCheckPremium = async () => {
-    if (!validatePhone(phone)) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const res = await fetch(`${config.USER_API}/ispremium`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ phone })
-      });
-      
-      const data = await res.json();
-      console.log(data);
-      
-      if (res.ok) {
-        if (data.isPremium) {
-          setIsPassword(true);
-        } else {
-          await handleLogin();
-        }
-      } else {
-        Alert.alert('Error', data.error || 'User not found');
-      }
-    } catch (error) {
-      console.log(error);
-      Alert.alert('Error', 'Failed to check premium status');
+      Alert.alert('Error', 'Failed to update user details');
     } finally {
       setLoading(false);
     }
@@ -333,6 +288,18 @@ export const LoginScreen = ({navigation}:any) => {
                 Resend OTP
               </CustomText>
             </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.changeNumberButton}
+              onPress={() => {
+                setIsOtpScreen(false);
+                setOtp('');
+              }}
+            >
+              <CustomText style={styles.changeNumberText}>
+                Change Phone Number
+              </CustomText>
+            </TouchableOpacity>
           </View>
         </>
       );
@@ -344,7 +311,7 @@ export const LoginScreen = ({navigation}:any) => {
               Welcome to Sarathi!
             </CustomText>
             <CustomText style={styles.subtitle}>
-              Please enter your name and Email to complete your registration
+              Please enter your name to complete your registration
             </CustomText>
           </View>
 
@@ -361,10 +328,11 @@ export const LoginScreen = ({navigation}:any) => {
             <View style={styles.inputGroup}>
               <CustomTextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder="Enter your email (optional)"
                 value={email}
                 onChangeText={setEmail}
                 placeholderTextColor="#999"
+                keyboardType="email-address"
               />
             </View>
 
@@ -380,67 +348,6 @@ export const LoginScreen = ({navigation}:any) => {
                   Continue
                 </CustomText>
               )}
-            </TouchableOpacity>
-          </View>
-        </>
-      );
-    } else if (isPassword) {
-      return (
-        <>
-          <View style={styles.welcomeContainer}>
-            <CustomText style={styles.welcomeText}>
-              Enter Your Password
-            </CustomText>
-          </View>
-
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <CustomText style={styles.inputLabel}>Password</CustomText>
-              <View style={styles.passwordContainer}>
-                <CustomTextInput
-                  style={styles.passwordInput}
-                  contextMenuHidden
-                  secureTextEntry={!showPassword}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholderTextColor="#999"
-                />
-                <TouchableOpacity 
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons 
-                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                    size={24} 
-                    color="#666"
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              onPress={handleLogin} 
-              style={styles.button}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <CustomText style={styles.buttonText}>
-                  Login
-                </CustomText>
-              )}
-            </TouchableOpacity>
-            
-            {/* Add Forgot Password Link */}
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('ForgotPassword')}
-              style={styles.forgotPasswordButton}
-            >
-              <CustomText style={styles.forgotPasswordText}>
-                Forgot Password?
-              </CustomText>
             </TouchableOpacity>
           </View>
         </>
@@ -471,7 +378,7 @@ export const LoginScreen = ({navigation}:any) => {
             </View>
 
             <TouchableOpacity 
-              onPress={handleCheckPremium} 
+              onPress={handleSendOtp} 
               style={styles.button}
               disabled={loading}
             >
@@ -479,7 +386,7 @@ export const LoginScreen = ({navigation}:any) => {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <CustomText style={styles.buttonText}>
-                  Continue
+                  Login
                 </CustomText>
               )}
             </TouchableOpacity>
@@ -571,13 +478,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     width: '100%',
   },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 8,
-    marginLeft: 4,
-  },
   input: {
     width: '100%',
     height: 50,
@@ -623,35 +523,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  passwordContainer: {
-    position: 'relative',
-    width: '100%',
-  },
-  passwordInput: {
-    width: '100%',
-    height: 50,
-    fontSize: 16,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    paddingRight: 50,
-    color: '#333333',
-    fontFamily: FONTS.REGULAR,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 15,
-    top: 12,
-    padding: 5,
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-    marginLeft: 4,
-  },
   timerContainer: {
     alignItems: 'center',
     marginTop: 10,
@@ -676,13 +547,12 @@ const styles = StyleSheet.create({
   resendTextDisabled: {
     color: '#999',
   },
-  forgotPasswordButton: {
-    alignSelf: 'center',
+  changeNumberButton: {
+    alignItems: 'center',
     paddingVertical: 10,
   },
-  forgotPasswordText: {
-    color: '#613EEA',
+  changeNumberText: {
+    color: '#666',
     fontSize: 14,
-    fontWeight: '500',
   },
 });

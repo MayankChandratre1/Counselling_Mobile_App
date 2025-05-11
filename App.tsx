@@ -34,6 +34,8 @@ import DynamicContentScreen from './pages/DynamicTabScreen';
 import { DynamicTabProvider } from './contexts/DynamicTabContext';
 import ForgotPassword from './pages/ForgotPassword';
 import Password from './pages/Password';
+import MyPayments from './pages/MyPayments';
+import ThankYouPage from './pages/ThankYouPage';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -83,6 +85,8 @@ type RootStackParamList = {
     };
     navigation: any;
   };
+  MyPayments: undefined;
+  ThankYou: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -144,7 +148,7 @@ const App = () => {
     try {
       // Configure OneSignal
       OneSignal.Debug.setLogLevel(LogLevel.Verbose);
-      OneSignal.initialize("46e13d6f-ff0e-4b55-9ecd-a372940c61e2");
+      OneSignal.initialize("7a811e86-9a98-4206-abbf-46d38aceb027");
       
       // Request notification permission
       OneSignal.Notifications.requestPermission(true);
@@ -316,7 +320,7 @@ const App = () => {
   return (
     <ForcedUpdateWrapper
       forceUpdateThreshold='patch'
-      bundleId='com.chess.chesscoach'
+      bundleId='com.mobileapp'
     >
     <NavigationContainer>
       <CollegeProvider>
@@ -373,9 +377,11 @@ const App = () => {
                   <Stack.Screen name="DynamicContentScreen" component={DynamicContentScreen} />
                   {/* @ts-ignore */}
                   <Stack.Screen name="Password" component={Password} />
+                  <Stack.Screen name="MyPayments" component={MyPayments} />
+                  <Stack.Screen name="ThankYou" component={ThankYouPage} />
 
               </Stack.Navigator>
-              {isLoggedIn && !isPremium && <PremiumButton />}
+              {/* {isLoggedIn && !isPremium && <PremiumButton />} */}
              
             </View>
 

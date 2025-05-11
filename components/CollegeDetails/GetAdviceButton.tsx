@@ -1,6 +1,6 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import React from 'react';
-import Icon from 'react-native-vector-icons/FontAwesome6';
+import Icon from 'react-native-vector-icons/Feather';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import CustomText from '../General/CustomText';
 
@@ -22,7 +22,7 @@ const GetAdviceButton = () => {
       }}
     >
       <View style={styles.buttonContent}>
-        <Icon name="comment-dots" size={22} color="#FFFFFF" style={styles.icon} />
+        <Icon name="phone-call" size={22} color="#FFFFFF" style={styles.icon} />
         <CustomText style={styles.buttonText}>Get Advice</CustomText>
       </View>
     </TouchableOpacity>

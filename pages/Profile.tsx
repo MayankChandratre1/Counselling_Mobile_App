@@ -45,9 +45,7 @@ const Profile = () => {
   const checkAppVersion = async () => {
     const curr = NativeModules.RNDeviceInfo.appVersion
     setUpdateChecking(true); 
-    const version = await checkVersion({
-      bundleId:'com.chess.chesscoach'
-    });
+    const version = await checkVersion();
     console.log("Got version info:", curr, version);
 
     if (version.needsUpdate) {
@@ -152,6 +150,20 @@ const Profile = () => {
               </View>
               <Icon name="chevron-right" size={24} color="#999" />
             </TouchableOpacity>
+                    {isPremium && (
+            <TouchableOpacity 
+                style={styles.settingItem} 
+                onPress={() => navigation.navigate('MyPayments')}
+              >
+                <View style={[styles.settingIconContainer, { backgroundColor: '#F0FFE6' }]}>
+                  <MaterialCommunityIcons name="cash" size={22} color="#8Cff00" />
+                </View>
+                <View style={styles.settingContent}>
+                  <CustomText style={styles.settingTitle}>My Payments</CustomText>
+                  <CustomText style={styles.settingDescription}>Check your payments</CustomText>
+                </View>
+                <Icon name="chevron-right" size={24} color="#999" />
+              </TouchableOpacity>)}
             
             {!isPremium && (
               <TouchableOpacity 

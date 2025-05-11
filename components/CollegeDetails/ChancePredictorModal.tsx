@@ -21,7 +21,7 @@ import { categories } from '../../data/categories';
 import { getPremiumStatus, getChancesUseCount, decrementChancesUseCount, getUserData } from '../../utils/storage';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { set } from 'date-fns';
+import { useEventsContext } from '../../contexts/EventsContext';
 
 interface ChancePredictorModalProps {
   visible: boolean;
@@ -65,6 +65,10 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
   collegeData,
   selectedBranch
 }) => {
+  // Get enabled features from context
+  const { enabledFeatures } = useEventsContext();
+  const isFeatureEnabled = enabledFeatures?.includes('predict-chance');
+  
   // Form state
   const [isResultDeclared, setIsResultDeclared] = useState(true);
   const [percentile, setPercentile] = useState('');
@@ -83,6 +87,7 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
   const [isPremium, setIsPremium] = useState(false);
   const [remainingUsage, setRemainingUsage] = useState<number | null>(null);
   const navigation = useNavigation<any>();
+  
 
   // Reset form when modal is opened/closed
   useEffect(() => {
@@ -106,6 +111,8 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
         console.log('Updating with user details...');
         
           const userData = await getUserData();
+          console.log(userData);
+          
           if(userData.counsellingData.cetMarks || userData.counsellingData.cetPercentile){
               setPercentile(userData.counsellingData.cetPercentile);
               setExpectedMarks(userData.counsellingData.cetMarks);
@@ -293,6 +300,47 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
     }
   };
 
+  // Render the Coming Soon UI when feature is disabled
+  const renderFeatureDisabledContent = () => {
+    return (
+      <View style={styles.modalContainer}>
+        <View style={styles.modalHandle} />
+        
+        {/* Modal Header */}
+        <View style={styles.modalHeader}>
+          <CustomText style={styles.modalTitle}>Chance Predictor</CustomText>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={onClose}
+            accessibilityLabel="Close predictor modal"
+          >
+            <AntDesign name="close" size={24} color="#371981" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.comingSoonContainer}>
+          <Ionicons name="construct-outline" size={80} color="#613EEA" style={styles.comingSoonIcon} />
+          <CustomText style={styles.comingSoonTitle}>
+            We're Updating This Feature
+          </CustomText>
+          <CustomText style={styles.comingSoonText}>
+            Our chance prediction algorithm is being upgraded to provide you with more accurate results.
+            This feature will be available again soon.
+          </CustomText>
+          
+          <TouchableOpacity
+            style={styles.upgradeButton}
+            onPress={onClose}
+          >
+            <CustomText style={styles.upgradeButtonText}>
+              Got it
+            </CustomText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -302,285 +350,283 @@ const ChancePredictorModal: React.FC<ChancePredictorModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHandle} />
-          
-          {/* Modal Header */}
-          <View style={styles.modalHeader}>
-            <CustomText style={styles.modalTitle}>Predict Your Chances</CustomText>
-            <TouchableOpacity 
-              style={styles.closeButton}
-            //   onPress={async ()=>{
-            //     await AsyncStorage.setItem('chanceCalculatorUsage', JSON.stringify({
-            //         date: new Date().toISOString(),
-            //         count: 1
-            //     }));
-            //   }}
+        {isFeatureEnabled ? (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHandle} />
+            
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <CustomText style={styles.modalTitle}>Predict Your Chances</CustomText>
+              <TouchableOpacity 
+                style={styles.closeButton}
                 onPress={onClose}
-              accessibilityLabel="Close predictor modal"
-            >
-              <AntDesign name="close" size={24} color="#371981" />
-            </TouchableOpacity>
-          </View>
+                accessibilityLabel="Close predictor modal"
+              >
+                <AntDesign name="close" size={24} color="#371981" />
+              </TouchableOpacity>
+            </View>
 
-          {/* Show premium badge or usage limit for free users */}
-          <View style={styles.usageBadgeContainer}>
-            {isPremium ? (
-              <View style={styles.premiumBadge}>
-                <MaterialIcons name="stars" size={16} color="#FFD700" />
-                <CustomText style={styles.premiumText}>Premium</CustomText>
-              </View>
-            ) : remainingUsage !== null && remainingUsage > 0 ? (
-              <View style={styles.usageBadge}>
-                <CustomText style={styles.usageText}>
-                  Predictions left: <CustomText style={styles.usageCount}>{remainingUsage}/10</CustomText>
-                </CustomText>
-              </View>
-            ) : null}
-          </View>
+            {/* Show premium badge or usage limit for free users */}
+            <View style={styles.usageBadgeContainer}>
+              {isPremium ? (
+                <View style={styles.premiumBadge}>
+                  <MaterialIcons name="stars" size={16} color="#FFD700" />
+                  <CustomText style={styles.premiumText}>Premium</CustomText>
+                </View>
+              ) : remainingUsage !== null && remainingUsage > 0 ? (
+                <View style={styles.usageBadge}>
+                  <CustomText style={styles.usageText}>
+                    Predictions left: <CustomText style={styles.usageCount}>{remainingUsage}/10</CustomText>
+                  </CustomText>
+                </View>
+              ) : null}
+            </View>
 
-          {/* Modal Content */}
-          {!isPremium && remainingUsage === 0 ? (
-            // Show limit reached UI for free users
-            <ScrollView style={styles.modalContent} contentContainerStyle={styles.scrollContent}>
-              <View style={styles.limitReachedContainer}>
-                <Ionicons name="lock-closed" size={60} color="#FF5722" style={styles.lockIcon} />
-                <CustomText style={styles.limitReachedTitle}>
-                  Daily Limit Reached
-                </CustomText>
-                <CustomText style={styles.limitReachedText}>
-                  You've used all 10 free predictions for today. Upgrade to premium for unlimited predictions and personalized counseling.
-                </CustomText>
+            {/* Modal Content */}
+            {!isPremium && remainingUsage === 0 ? (
+              // Show limit reached UI for free users
+              <ScrollView style={styles.modalContent} contentContainerStyle={styles.scrollContent}>
+                <View style={styles.limitReachedContainer}>
+                  <Ionicons name="lock-closed" size={60} color="#FF5722" style={styles.lockIcon} />
+                  <CustomText style={styles.limitReachedTitle}>
+                    Daily Limit Reached
+                  </CustomText>
+                  <CustomText style={styles.limitReachedText}>
+                    You've used all 10 free predictions for today. Upgrade to premium for unlimited predictions and personalized counseling.
+                  </CustomText>
+                  <TouchableOpacity
+                    style={styles.upgradeButton}
+                    onPress={handleUpgradeToPremium}
+                  >
+                    <CustomText style={styles.upgradeButtonText}>
+                      Upgrade to Premium
+                    </CustomText>
+                    <Ionicons name="star" size={16} color="#FFF" style={{ marginLeft: 8 }} />
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            ) : !showResults ? (
+              // Form UI (existing code)
+              <ScrollView style={styles.modalContent} contentContainerStyle={styles.scrollContent}>
+                {/* Result Declaration Toggle */}
+                <View style={styles.formSection}>
+                  <View style={styles.switchContainer}>
+                    <CustomText style={styles.switchLabel}>Is Result Declared?</CustomText>
+                    <Switch
+                      value={isResultDeclared}
+                      onValueChange={setIsResultDeclared}
+                      trackColor={{ false: '#D1D1D1', true: '#613EEA50' }}
+                      thumbColor={isResultDeclared ? '#613EEA' : '#f4f3f4'}
+                    />
+                  </View>
+                </View>
+
+                {/* Input fields based on result declaration */}
+                {isResultDeclared ? (
+                  <View style={styles.formSection}>
+                    <View style={styles.inputGroup}>
+                      <CustomText style={styles.inputLabel}>Percentile</CustomText>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your percentile"
+                        keyboardType="decimal-pad"
+                        value={percentile}
+                        onChangeText={setPercentile}
+                      />
+                    </View>
+                    
+                    
+                  </View>
+                ) : (
+                  <View style={styles.formSection}>
+                    <View style={styles.inputGroup}>
+                      <CustomText style={styles.inputLabel}>Expected Marks</CustomText>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your expected marks"
+                        keyboardType="number-pad"
+                        value={expectedMarks}
+                        onChangeText={setExpectedMarks}
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* Category Selection */}
+                <View style={styles.formSection}>
+                  <CustomText style={styles.sectionTitle}>Category</CustomText>
+                  <View style={styles.pickerWrapper}>
+                    <Picker
+                      selectedValue={selectedCategory}
+                      onValueChange={(value) => setSelectedCategory(value)}
+                      style={styles.picker}
+                      dropdownIconColor="#371981"
+                    >
+                      {categories.map((category) => (
+                        <Picker.Item key={category} label={category} value={category} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+
+                {/* Special Categories */}
+                <View style={styles.formSection}>
+                  <CustomText style={styles.sectionTitle}>Special Categories</CustomText>
+                  <View style={styles.specialCategoriesContainer}>
+                    <TouchableOpacity 
+                      style={[styles.specialCategoryButton, isPWD && styles.activeSpecialCategory]}
+                      onPress={() => setIsPWD(!isPWD)}
+                    >
+                      <Ionicons
+                        name={isPWD ? "checkbox" : "square-outline"}
+                        size={24}
+                        color={isPWD ? "#613EEA" : "#666"}
+                      />
+                      <CustomText style={[styles.specialCategoryText, isPWD && styles.activeSpecialCategoryText]}>
+                        Physical Disability
+                      </CustomText>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.specialCategoryButton, isDefense && styles.activeSpecialCategory]}
+                      onPress={() => setIsDefense(!isDefense)}
+                    >
+                      <Ionicons
+                        name={isDefense ? "checkbox" : "square-outline"}
+                        size={24}
+                        color={isDefense ? "#613EEA" : "#666"}
+                      />
+                      <CustomText style={[styles.specialCategoryText, isDefense && styles.activeSpecialCategoryText]}>
+                        Defense Officer's Child
+                      </CustomText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Error Message */}
+                {error && (
+                  <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle" size={18} color="#FF5252" />
+                    <CustomText style={styles.errorText}>{error}</CustomText>
+                  </View>
+                )}
+              </ScrollView>
+            ) : (
+              // Results Section
+              <ScrollView style={styles.modalContent} contentContainerStyle={styles.scrollContent}>
+                {result && (
+                  <View style={styles.resultsContainer}>
+                    {/* Chance Meter */}
+                    <View style={styles.chanceGaugeContainer}>
+                      <View style={styles.gaugeBackground}>
+                        <View 
+                          style={[
+                            styles.gaugeProgress, 
+                            { width: `${result.chance}%` },
+                            result.chance < 30 ? styles.gaugeColorLow :
+                            result.chance < 70 ? styles.gaugeColorMedium :
+                            styles.gaugeColorHigh
+                          ]}
+                        />
+                      </View>
+                      <CustomText style={styles.chancePercentage}>{Math.round(result.chance)}%</CustomText>
+                      <CustomText style={styles.chanceLabel}>Chance of Admission</CustomText>
+                    </View>
+
+                    {/* Confidence Level */}
+                    <View style={styles.resultCard}>
+                      <View style={styles.resultCardHeader}>
+                        <CustomText style={styles.resultCardTitle}>Data Confidence</CustomText>
+                        {renderConfidenceIcon(result.confidenceLevel)}
+                      </View>
+                      <CustomText style={styles.resultCardContent}>
+                        {result.confidenceLevel === 'high' ? 
+                          'Based on comprehensive historical data of past 2 years' :
+                          result.confidenceLevel === 'medium' ?
+                          'Based on limited historical data of past 2 years' :
+                          'Based on very limited historical data of past 2 years'}
+                      </CustomText>
+                    </View>
+
+                    {/* Trend Information */}
+                    <View style={styles.resultCard}>
+                      <View style={styles.resultCardHeader}>
+                        <CustomText style={styles.resultCardTitle}>Cutoff Trend</CustomText>
+                        {renderTrendIcon(result.trend)}
+                      </View>
+                      <CustomText style={styles.resultCardContent}>
+                        {getTrendExplanation(result.trend)}
+                      </CustomText>
+                    </View>
+                    
+                    {/* Message */}
+                    <View style={styles.messageContainer}>
+                      <CustomText style={styles.messageText}>{result.message}</CustomText>
+                    </View>
+                    
+                    {/* Suggested Next Round */}
+                    {result.suggestedNextRound && (
+                      <View style={styles.suggestionContainer}>
+                        <Ionicons name="information-circle" size={24} color="#3F51B5" />
+                        <CustomText style={styles.suggestionText}>
+                          Consider applying in {result.suggestedNextRound.replace('cap', 'Round ')} for better chances
+                        </CustomText>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </ScrollView>
+            )}
+
+            {/* Modal Footer */}
+            <View style={styles.modalFooter}>
+              {!isPremium && remainingUsage === 0 ? (
                 <TouchableOpacity
-                  style={styles.upgradeButton}
+                  style={styles.upgradeButtonFooter}
                   onPress={handleUpgradeToPremium}
                 >
                   <CustomText style={styles.upgradeButtonText}>
                     Upgrade to Premium
                   </CustomText>
-                  <Ionicons name="star" size={16} color="#FFF" style={{ marginLeft: 8 }} />
                 </TouchableOpacity>
-              </View>
-            </ScrollView>
-          ) : !showResults ? (
-            // Form UI (existing code)
-            <ScrollView style={styles.modalContent} contentContainerStyle={styles.scrollContent}>
-              {/* Result Declaration Toggle */}
-              <View style={styles.formSection}>
-                <View style={styles.switchContainer}>
-                  <CustomText style={styles.switchLabel}>Is Result Declared?</CustomText>
-                  <Switch
-                    value={isResultDeclared}
-                    onValueChange={setIsResultDeclared}
-                    trackColor={{ false: '#D1D1D1', true: '#613EEA50' }}
-                    thumbColor={isResultDeclared ? '#613EEA' : '#f4f3f4'}
-                  />
-                </View>
-              </View>
-
-              {/* Input fields based on result declaration */}
-              {isResultDeclared ? (
-                <View style={styles.formSection}>
-                  <View style={styles.inputGroup}>
-                    <CustomText style={styles.inputLabel}>Percentile</CustomText>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your percentile"
-                      keyboardType="decimal-pad"
-                      value={percentile}
-                      onChangeText={setPercentile}
-                    />
-                  </View>
+              ) : !showResults ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.resetButton}
+                    onPress={resetForm}
+                  >
+                    <CustomText style={styles.resetButtonText}>Reset</CustomText>
+                  </TouchableOpacity>
                   
-                  
-                </View>
+                  <TouchableOpacity
+                    style={styles.calculateButton}
+                    onPress={handleCalculate}
+                    disabled={loading || (!isPremium && remainingUsage === 0)}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <>
+                        <CustomText style={styles.calculateButtonText}>Calculate Chances</CustomText>
+                        <AntDesign name="right" size={16} color="#FFF" style={{ marginLeft: 5 }} />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
               ) : (
-                <View style={styles.formSection}>
-                  <View style={styles.inputGroup}>
-                    <CustomText style={styles.inputLabel}>Expected Marks</CustomText>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your expected marks"
-                      keyboardType="number-pad"
-                      value={expectedMarks}
-                      onChangeText={setExpectedMarks}
-                    />
-                  </View>
-                </View>
-              )}
-
-              {/* Category Selection */}
-              <View style={styles.formSection}>
-                <CustomText style={styles.sectionTitle}>Category</CustomText>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={selectedCategory}
-                    onValueChange={(value) => setSelectedCategory(value)}
-                    style={styles.picker}
-                    dropdownIconColor="#371981"
-                  >
-                    {categories.map((category) => (
-                      <Picker.Item key={category} label={category} value={category} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-
-              {/* Special Categories */}
-              <View style={styles.formSection}>
-                <CustomText style={styles.sectionTitle}>Special Categories</CustomText>
-                <View style={styles.specialCategoriesContainer}>
-                  <TouchableOpacity 
-                    style={[styles.specialCategoryButton, isPWD && styles.activeSpecialCategory]}
-                    onPress={() => setIsPWD(!isPWD)}
-                  >
-                    <Ionicons
-                      name={isPWD ? "checkbox" : "square-outline"}
-                      size={24}
-                      color={isPWD ? "#613EEA" : "#666"}
-                    />
-                    <CustomText style={[styles.specialCategoryText, isPWD && styles.activeSpecialCategoryText]}>
-                      Physical Disability
-                    </CustomText>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.specialCategoryButton, isDefense && styles.activeSpecialCategory]}
-                    onPress={() => setIsDefense(!isDefense)}
-                  >
-                    <Ionicons
-                      name={isDefense ? "checkbox" : "square-outline"}
-                      size={24}
-                      color={isDefense ? "#613EEA" : "#666"}
-                    />
-                    <CustomText style={[styles.specialCategoryText, isDefense && styles.activeSpecialCategoryText]}>
-                      Defense Officer's Child
-                    </CustomText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Error Message */}
-              {error && (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={18} color="#FF5252" />
-                  <CustomText style={styles.errorText}>{error}</CustomText>
-                </View>
-              )}
-            </ScrollView>
-          ) : (
-            // Results Section
-            <ScrollView style={styles.modalContent} contentContainerStyle={styles.scrollContent}>
-              {result && (
-                <View style={styles.resultsContainer}>
-                  {/* Chance Meter */}
-                  <View style={styles.chanceGaugeContainer}>
-                    <View style={styles.gaugeBackground}>
-                      <View 
-                        style={[
-                          styles.gaugeProgress, 
-                          { width: `${result.chance}%` },
-                          result.chance < 30 ? styles.gaugeColorLow :
-                          result.chance < 70 ? styles.gaugeColorMedium :
-                          styles.gaugeColorHigh
-                        ]}
-                      />
-                    </View>
-                    <CustomText style={styles.chancePercentage}>{Math.round(result.chance)}%</CustomText>
-                    <CustomText style={styles.chanceLabel}>Chance of Admission</CustomText>
-                  </View>
-
-                  {/* Confidence Level */}
-                  <View style={styles.resultCard}>
-                    <View style={styles.resultCardHeader}>
-                      <CustomText style={styles.resultCardTitle}>Data Confidence</CustomText>
-                      {renderConfidenceIcon(result.confidenceLevel)}
-                    </View>
-                    <CustomText style={styles.resultCardContent}>
-                      {result.confidenceLevel === 'high' ? 
-                        'Based on comprehensive historical data of past 2 years' :
-                        result.confidenceLevel === 'medium' ?
-                        'Based on limited historical data of past 2 years' :
-                        'Based on very limited historical data of past 2 years'}
-                    </CustomText>
-                  </View>
-
-                  {/* Trend Information */}
-                  <View style={styles.resultCard}>
-                    <View style={styles.resultCardHeader}>
-                      <CustomText style={styles.resultCardTitle}>Cutoff Trend</CustomText>
-                      {renderTrendIcon(result.trend)}
-                    </View>
-                    <CustomText style={styles.resultCardContent}>
-                      {getTrendExplanation(result.trend)}
-                    </CustomText>
-                  </View>
-                  
-                  {/* Message */}
-                  <View style={styles.messageContainer}>
-                    <CustomText style={styles.messageText}>{result.message}</CustomText>
-                  </View>
-                  
-                  {/* Suggested Next Round */}
-                  {result.suggestedNextRound && (
-                    <View style={styles.suggestionContainer}>
-                      <Ionicons name="information-circle" size={24} color="#3F51B5" />
-                      <CustomText style={styles.suggestionText}>
-                        Consider applying in {result.suggestedNextRound.replace('cap', 'Round ')} for better chances
-                      </CustomText>
-                    </View>
-                  )}
-                </View>
-              )}
-            </ScrollView>
-          )}
-
-          {/* Modal Footer */}
-          <View style={styles.modalFooter}>
-            {!isPremium && remainingUsage === 0 ? (
-              <TouchableOpacity
-                style={styles.upgradeButtonFooter}
-                onPress={handleUpgradeToPremium}
-              >
-                <CustomText style={styles.upgradeButtonText}>
-                  Upgrade to Premium
-                </CustomText>
-              </TouchableOpacity>
-            ) : !showResults ? (
-              <>
                 <TouchableOpacity
-                  style={styles.resetButton}
-                  onPress={resetForm}
+                  style={styles.backButton}
+                  onPress={() => setShowResults(false)}
                 >
-                  <CustomText style={styles.resetButtonText}>Reset</CustomText>
+                  <AntDesign name="left" size={16} color="#FFF" style={{ marginRight: 5 }} />
+                  <CustomText style={styles.backButtonText}>Back to Form</CustomText>
                 </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.calculateButton}
-                  onPress={handleCalculate}
-                  disabled={loading || (!isPremium && remainingUsage === 0)}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <>
-                      <CustomText style={styles.calculateButtonText}>Calculate Chances</CustomText>
-                      <AntDesign name="right" size={16} color="#FFF" style={{ marginLeft: 5 }} />
-                    </>
-                  )}
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => setShowResults(false)}
-              >
-                <AntDesign name="left" size={16} color="#FFF" style={{ marginRight: 5 }} />
-                <CustomText style={styles.backButtonText}>Back to Form</CustomText>
-              </TouchableOpacity>
-            )}
+              )}
+            </View>
           </View>
-        </View>
+        ) : (
+          renderFeatureDisabledContent()
+        )}
       </View>
     </Modal>
   );
@@ -674,7 +720,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8FC',
     paddingHorizontal: 15,
     fontSize: 16,
-    color: '#333',
+    color: '#000',
     fontFamily: FONTS.REGULAR,
   },
   sectionTitle: {
@@ -987,6 +1033,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  // New styles for Coming Soon UI
+  comingSoonContainer: {
+    alignItems: 'center',
+    padding: 30,
+    paddingTop: 40,
+    paddingBottom: 40,
+  },
+  comingSoonIcon: {
+    marginBottom: 24,
+  },
+  comingSoonTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#371981',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  comingSoonText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  }
 });
 
 export default ChancePredictorModal;

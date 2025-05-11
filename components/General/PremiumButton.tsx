@@ -2,9 +2,13 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import React from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
+import { usePremiumPlan } from '../../contexts/PremiumPlanContext';
 
 const PremiumButton = () => {
   const navigation = useNavigation<any>();
+  const {premiumPlan} = usePremiumPlan()
+
+  if(!!premiumPlan?.isPremium) return null; // Don't show button if user is already premium
 
 
   return (

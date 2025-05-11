@@ -34,6 +34,7 @@ interface EventsContextType {
   recommendedColleges: any[];
   loading: boolean;
   error: string | null;
+  enabledFeatures: string[];
   refreshData: () => Promise<void>;
 }
 
@@ -45,6 +46,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [recommendedColleges, setRecommendedColleges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
 
   const fetchHomePageData = async () => {
     try {
@@ -71,13 +73,35 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const fetchEnabledFeatures = async () => {
+    try {
+      const response = await fetch(`${config.USER_API}/getenabledfeatures`);
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Enabled features:', data);
+      
+      if (data) {
+        setEnabledFeatures(data.enabled || []);
+      }
+      return data.enabled || [];
+    } catch (err) {
+      console.error('Error fetching enabled features:', err);
+      return [];
+    }
+  }
+
   // Initial data fetch
   useEffect(() => {
     fetchHomePageData();
+    fetchEnabledFeatures()
   }, []);
 
   const refreshData = async () => {
     await fetchHomePageData();
+    await fetchEnabledFeatures();
+   
   };
 
   const value = {
@@ -86,6 +110,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     recommendedColleges,
     loading,
     error,
+    enabledFeatures,
     refreshData
   };
 

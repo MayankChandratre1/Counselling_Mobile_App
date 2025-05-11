@@ -49,7 +49,7 @@ const PaymentModal = ({
         order_id: orderData.id,
         prefill: {
           email: userData?.email || '',
-          contact: userData?.phone || '',
+          contact: `+91${userData?.phone}` || '',
           name: userData?.name || '',
         },
         theme: { color: '#371981' }
@@ -194,6 +194,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     marginVertical: 15,
+    paddingVertical: 12,
   },
   description: {
     fontSize: 16,
