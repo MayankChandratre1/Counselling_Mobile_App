@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { FONTS } from '../styles/typography';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TopBar from '../components/General/TopBar';
+import { useEventsContext } from '../contexts/EventsContext';
 
 // Get screen dimensions for responsive layout
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -36,14 +37,18 @@ const FeatureItem = ({ text }: { text: string }) => (
   </View>
 );
 
-const TestimonialCard = ({ testimonial }: { testimonial: Testimonial }) => {
+const TestimonialCard = ({ review }: { review: any }) => {
   return (
     <View style={styles.testimonialCard}>
-      <CustomText style={styles.testimonialQuote}>"</CustomText>
-      <CustomText style={styles.testimonialContent}>{testimonial.feedback}</CustomText>
+      <View style={styles.testimonialQuoteContainer}>
+        <CustomText style={styles.testimonialQuote}>"</CustomText>
+      </View>
+      <CustomText style={styles.testimonialContent}>{review.feedback.length > 70 ? `${review.feedback.substring(0, 50)}...`:review.feedback}</CustomText>
       <View style={styles.testimonialAuthor}>
-        <CustomText style={styles.testimonialName}>{testimonial.name}</CustomText>
-        <CustomText style={styles.testimonialDesignation}>{testimonial.designation}</CustomText>
+        <CustomText style={styles.testimonialName}>{review.firstName} {review.lastName}</CustomText>
+        <CustomText style={styles.testimonialDesignation}>
+          {review.branch} | {review.college}
+        </CustomText>
       </View>
     </View>
   );
@@ -54,6 +59,12 @@ const Landing = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigation = useNavigation<any>();
+  const { reviews } = useEventsContext();
+  
+  // Get top 4 reviews for display
+  const displayReviews = reviews
+    .sort((a, b) => (a.featured === b.featured) ? 0 : a.featured ? -1 : 1)
+    .slice(0, 4);
   
   // Function to extract video ID from YouTube URL
   const extractVideoId = (url: string): string => {
@@ -146,6 +157,10 @@ const Landing = () => {
     navigation.navigate('Counselling');
   };
   
+  const handleViewMoreReviews = () => {
+    navigation.navigate('Reviews');
+  };
+  
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -193,8 +208,6 @@ const Landing = () => {
               </TouchableOpacity>
             )}
           </View>
-          
-         
         </View>
         
         {/* Features Section */}
@@ -209,18 +222,38 @@ const Landing = () => {
         
         {/* Testimonial Section */}
         <View style={styles.section}>
-          <CustomText style={styles.sectionTitle}>What People Say</CustomText>
-          <ScrollView 
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.testimonialsScrollContainer}
-            snapToInterval={SCREEN_WIDTH * 0.85} // Snap to testimonial cards
-            decelerationRate="fast"
-          >
-            {data.testimonials.map((testimonial, index) => (
-              <TestimonialCard key={index} testimonial={testimonial} />
-            ))}
-          </ScrollView>
+          <View style={styles.sectionHeaderRow}>
+            <CustomText style={styles.sectionTitle}>Student Reviews</CustomText>
+            {reviews.length > 0 && (
+              <TouchableOpacity 
+                style={styles.viewAllButton} 
+                onPress={handleViewMoreReviews}
+              >
+                <CustomText style={styles.viewAllText}>View All</CustomText>
+                <Icon name="arrow-forward" size={16} color="#371981" />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {displayReviews.length > 0 ? (
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.testimonialsScrollContainer}
+              snapToInterval={SCREEN_WIDTH * 0.85} // Snap to testimonial cards
+              decelerationRate="fast"
+            >
+              {displayReviews.map((review, index) => (
+                <TestimonialCard key={index} review={review} />
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyState}>
+              <CustomText style={styles.emptyStateText}>
+                Student reviews coming soon
+              </CustomText>
+            </View>
+          )}
         </View>
         
         {/* Add padding at the bottom to ensure the button doesn't overlap with content */}
@@ -303,6 +336,23 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontFamily: FONTS.BOLD,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewAllText: {
+    color: '#371981',
+    fontWeight: '600',
+    fontSize: 14,
+    marginRight: 4,
+    fontFamily: FONTS.MEDIUM,
+  },
   featuresContainer: {
     marginBottom: 10,
   },
@@ -329,23 +379,25 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   testimonialCard: {
-    width: SCREEN_WIDTH * 0.85,
+    width: SCREEN_WIDTH * 0.8,
     padding: 20,
     borderRadius: 16,
     borderColor: '#E6E1FF',
     backgroundColor: '#F7F5FF',
     marginRight: 15,
-  
     position: 'relative',
     borderWidth: 1,
+    minHeight: 180,
+  },
+  testimonialQuoteContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 10,
   },
   testimonialQuote: {
     fontSize: 40,
     color: '#371981',
     opacity: 0.2,
-    position: 'absolute',
-    top: 8,
-    left: 10,
     fontFamily: FONTS.BOLD,
   },
   testimonialContent: {
@@ -355,6 +407,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontFamily: FONTS.REGULAR,
     fontStyle: 'italic',
+    paddingTop: 15,
   },
   testimonialAuthor: {
     borderTopWidth: 1,
@@ -425,5 +478,20 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 80,
+  },
+  emptyState: {
+    backgroundColor: '#F8F8FF',
+    padding: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E6E1FF',
+    marginTop: 10,
+  },
+  emptyStateText: {
+    color: '#666',
+    fontSize: 16,
+    fontFamily: FONTS.MEDIUM,
   },
 });

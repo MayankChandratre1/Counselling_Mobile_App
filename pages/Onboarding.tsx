@@ -1,9 +1,10 @@
 import { Dimensions, Image, StyleSheet, View, ScrollView } from 'react-native'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import CustomText from '../components/General/CustomText'
 import { TouchableOpacity } from 'react-native'
 import { FONTS } from '../styles/typography'
 import { globalStyles } from '../styles/globalStyles'
+import { useEventsContext } from '../contexts/EventsContext'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const scale = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) / 375; // Base scale factor
@@ -77,21 +78,62 @@ const FeatureItem = ({ title }: { title: string }) => (
   </View>
 );
 
-const Screen3 = () => (
-  <ScrollView contentContainerStyle={styles.screenContentContainer}>
-    <CustomText style={styles.whyJoinUs}>Why Join Us?</CustomText>
-    <View style={styles.featuresCard}>
-      <View style={styles.featuresContainer}>
-        <FeatureItem title="College Description" />
-        <FeatureItem title="College Fees" />
-        <FeatureItem title="Previous Year Cutoffs" />
-        <FeatureItem title="Placement Statistics" />
-        <FeatureItem title="Campus Details" />
-        <FeatureItem title="Admission Process" />
+// New component for review card
+const ReviewCard = ({ review }: { review: any }) => (
+  <View style={styles.reviewCard}>
+    <View style={styles.reviewHeader}>
+      <CustomText style={styles.reviewName}>
+        {review.firstName} {review.lastName}
+      </CustomText>
+      <View style={styles.reviewInfoBadge}>
+        <CustomText style={styles.reviewBadgeText}>
+          {review.branch}
+        </CustomText>
       </View>
     </View>
-  </ScrollView>
+    <CustomText style={styles.reviewCollege}>{review.college}</CustomText>
+    <CustomText style={styles.reviewContent}>
+      "{review.feedback}"
+    </CustomText>
+  </View>
 );
+
+const Screen3 = () => {
+  const { reviews } = useEventsContext();
+  // Get top 3 reviews, preferring featured ones if available
+  const topReviews = reviews
+    .sort((a, b) => (a.featured === b.featured) ? 0 : a.featured ? -1 : 1)
+    .slice(0, 3);
+
+  return (
+    <ScrollView contentContainerStyle={styles.screenContentContainer}>
+      <CustomText style={styles.whyJoinUs}>Why Join Us?</CustomText>
+      <View style={styles.featuresCard}>
+        <View style={styles.featuresContainer}>
+          <FeatureItem title="College Description" />
+          <FeatureItem title="College Fees" />
+          <FeatureItem title="Previous Year Cutoffs" />
+          <FeatureItem title="Placement Statistics" />
+          <FeatureItem title="Campus Details" />
+          <FeatureItem title="Admission Process" />
+        </View>
+      </View>
+      
+      {/* Reviews Section */}
+      {topReviews.length > 0 && (
+        <View style={styles.reviewsSection}>
+          <CustomText style={styles.reviewsTitle}>
+            Student Success Stories
+          </CustomText>
+          
+          {topReviews.map((review, index) => (
+            <ReviewCard key={index} review={review} />
+          ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+};
 
 export const OnboardingScreen = ({ navigation, route }:any) => {
   const { step } = route.params;
@@ -379,5 +421,68 @@ const styles = StyleSheet.create({
     fontSize: 14 * scale,
     fontWeight: 'bold',
     fontFamily: FONTS.BOLD,
+  },
+  
+  // New styles for reviews
+  reviewsSection: {
+    width: '100%',
+    marginTop: 24,
+  },
+  reviewsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#371981',
+    marginBottom: 16,
+    fontFamily: FONTS.BOLD,
+  },
+  reviewCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+    borderLeftWidth: 3,
+    borderLeftColor: '#371981',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  reviewName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: FONTS.BOLD,
+  },
+  reviewCollege: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+    fontFamily: FONTS.REGULAR,
+  },
+  reviewInfoBadge: {
+    backgroundColor: '#F0F0FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  reviewBadgeText: {
+    fontSize: 12,
+    color: '#371981',
+    fontFamily: FONTS.MEDIUM,
+  },
+  reviewContent: {
+    fontSize: 14,
+    color: '#444',
+    fontStyle: 'italic',
+    lineHeight: 20,
+    fontFamily: FONTS.REGULAR,
   },
 });

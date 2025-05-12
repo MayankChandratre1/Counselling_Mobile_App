@@ -22,6 +22,21 @@ export interface Update {
   thumbnail?: string;
 }
 
+// New review interface based on CSV data
+export interface Review {
+  id: string;
+  timestamp: string;
+  firstName: string;
+  lastName: string;
+  college: string;
+  branch: string;
+  district: string;
+  gender: string;
+  feedback: string;
+  photoUrl?: string;
+  featured?: boolean;
+}
+
 interface HomePageData {
   events: Event[];
   updates: Update[];
@@ -32,6 +47,7 @@ interface EventsContextType {
   events: Event[];
   updates: Update[];
   recommendedColleges: any[];
+  reviews: Review[];
   loading: boolean;
   error: string | null;
   enabledFeatures: string[];
@@ -44,6 +60,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [updates, setUpdates] = useState<Update[]>([]);
   const [recommendedColleges, setRecommendedColleges] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
@@ -73,6 +90,24 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // New function to fetch reviews
+  const fetchReviews = async () => {
+    try {
+      const response = await fetch(`${config.USER_API}/getreviews`);
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data && data.data) {
+        setReviews(data.data);
+      }
+      return data.data || [];
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      return [];
+    }
+  };
+
   const fetchEnabledFeatures = async () => {
     try {
       const response = await fetch(`${config.USER_API}/getenabledfeatures`);
@@ -94,20 +129,29 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
   // Initial data fetch
   useEffect(() => {
-    fetchHomePageData();
-    fetchEnabledFeatures()
+    const fetchAllData = async () => {
+      await Promise.all([
+        fetchHomePageData(),
+        fetchReviews(),
+        fetchEnabledFeatures()
+      ]);
+    };
+    fetchAllData();
   }, []);
 
   const refreshData = async () => {
-    await fetchHomePageData();
-    await fetchEnabledFeatures();
-   
+    await Promise.all([
+      fetchHomePageData(),
+      fetchReviews(),
+      fetchEnabledFeatures()
+    ]);
   };
 
   const value = {
     events,
     updates,
     recommendedColleges,
+    reviews,
     loading,
     error,
     enabledFeatures,

@@ -36,6 +36,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Password from './pages/Password';
 import MyPayments from './pages/MyPayments';
 import ThankYouPage from './pages/ThankYouPage';
+import ReviewsPage from './pages/Reviews';
 
 type RootStackParamList = {
   Onboarding: { step: number };
@@ -86,6 +87,7 @@ type RootStackParamList = {
     navigation: any;
   };
   MyPayments: undefined;
+  Reviews: undefined;
   ThankYou: undefined;
 };
 
@@ -379,6 +381,7 @@ const App = () => {
                   <Stack.Screen name="Password" component={Password} />
                   <Stack.Screen name="MyPayments" component={MyPayments} />
                   <Stack.Screen name="ThankYou" component={ThankYouPage} />
+                  <Stack.Screen name="Reviews" component={ReviewsPage} />
 
               </Stack.Navigator>
               {/* {isLoggedIn && !isPremium && <PremiumButton />} */}

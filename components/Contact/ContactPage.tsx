@@ -29,7 +29,6 @@ const ContactPage = () => {
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
   const { contactData, loading: dataLoading, error, refreshContactData } = useContact();
 
-
   // Generate contact information object from API data or fallback
   const getContactInfo = () => {
     if (!contactData) {
@@ -87,13 +86,15 @@ const ContactPage = () => {
     icon, 
     text, 
     bgColor, 
-    loadingKey 
+    loadingKey ,
+    disabled
   }: { 
     onPress: () => void, 
     icon: string, 
     text: string, 
     bgColor: string,
-    loadingKey: string
+    loadingKey: string,
+    disabled?: boolean
   }) => (
     <TouchableOpacity 
       style={[styles.socialButton, { backgroundColor: bgColor }]} 
@@ -103,6 +104,8 @@ const ContactPage = () => {
       accessible={true}
       accessibilityLabel={text}
       accessibilityRole="button"
+      accessibilityHint={`Press to ${text.toLowerCase()}`}
+      accessibilityState={{ disabled: loading[loadingKey] || disabled }}
     >
       {loading[loadingKey] ? (
         <ActivityIndicator color="#fff" size="small" />
@@ -170,7 +173,7 @@ const ContactPage = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <TopBar heading="Contact Us" />
+      <TopBar heading="Counselling Support" />
       
       <ScrollView 
         style={styles.container} 
@@ -190,9 +193,17 @@ const ContactPage = () => {
           </CustomText>
         </View>
 
+        {/* Professional Services Note */}
+        <View style={styles.serviceNoteContainer}>
+          <Icon name="school" size={24} color="#371981" style={styles.serviceNoteIcon} />
+          <CustomText style={styles.serviceNoteText}>
+            Our experts are ready to assist with your academic counselling needs and enrollment inquiries
+          </CustomText>
+        </View>
+
         {/* Social Media Section */}
         <View style={styles.section}>
-          <CustomText style={styles.sectionTitle}>Connect With Us</CustomText>
+          <CustomText style={styles.sectionTitle}>Connect For Counselling</CustomText>
           
           <View style={styles.socialButtonsContainer}>
             <View style={styles.socialRow}>
@@ -200,9 +211,10 @@ const ContactPage = () => {
                 <ContactButton 
                   onPress={handleWhatsAppGroup}
                   icon="group"
-                  text="Join WhatsApp"
-                  bgColor="#128C7E" // Changed from bright green to a more muted WhatsApp color
+                  text="Join Group"
+                  bgColor="#128C7E"
                   loadingKey="whatsappGroup"
+                  disabled={!contactInfo.whatsapp.groupinvite}
                 />
               </View>
               
@@ -211,8 +223,9 @@ const ContactPage = () => {
                   onPress={handleWhatsApp}
                   icon="chat"
                   text="Message"
-                  bgColor="#128C7E" // Changed from bright green to a more muted WhatsApp color
+                  bgColor="#128C7E"
                   loadingKey="whatsapp"
+                  disabled={!contactInfo.whatsapp.number}
                 />
               </View>
             </View>
@@ -222,8 +235,8 @@ const ContactPage = () => {
                 <ContactButton 
                   onPress={handleYouTube}
                   icon="play-circle-filled"
-                  text="YouTube"
-                  bgColor="#CC0000" // Changed from bright red to a more subdued YouTube red
+                  text="Watch Counselling Videos"
+                  bgColor="#CC0000"
                   loadingKey="youtube"
                 />
               </View>
@@ -233,10 +246,10 @@ const ContactPage = () => {
 
         {/* Contact Information Section */}
         <View style={styles.section}>
-          <CustomText style={styles.sectionTitle}>Reach Out To Us</CustomText>
+          <CustomText style={styles.sectionTitle}>Counselling Office</CustomText>
           
           <View style={styles.contactCard}>
-            <ContactInfoItem icon="location-on" label="Our Office">
+            <ContactInfoItem icon="location-on" label="Visit Our Counselling Center">
               <TouchableOpacity 
                 onPress={handleLocation}
                 activeOpacity={0.7}
@@ -254,14 +267,12 @@ const ContactPage = () => {
               </TouchableOpacity>
             </ContactInfoItem>
             
-          
-            
-            <ContactInfoItem icon="phone" label="Phone Number">
+            <ContactInfoItem icon="phone" label="Call For Admission Inquiry">
               <TouchableOpacity 
                 onPress={handleCall}
                 activeOpacity={0.7}
                 accessible={true}
-                accessibilityLabel="Call phone number"
+                accessibilityLabel="Call for counselling"
                 accessibilityRole="button"
                 style={styles.actionButton}
               >
@@ -275,6 +286,14 @@ const ContactPage = () => {
             </ContactInfoItem>
           </View>
 
+          {/* Business Hours Note */}
+          <View style={styles.businessHoursContainer}>
+            <Icon name="schedule" size={16} color="#666" />
+            <CustomText style={styles.businessHoursText}>
+              Available for counselling: Mon-Sat, 10:00 AM - 7:00 PM
+            </CustomText>
+          </View>
+
           {/* Quick Contact Buttons */}
           <View style={styles.quickContactContainer}>
             <TouchableOpacity 
@@ -282,13 +301,13 @@ const ContactPage = () => {
               onPress={handleCall}
               activeOpacity={0.8}
               accessible={true}
-              accessibilityLabel="Call us"
+              accessibilityLabel="Call for counselling"
               accessibilityRole="button"
             >
               <View style={[styles.quickIconContainer, { backgroundColor: '#371981' }]}>
                 <Icon name="phone" size={scale(20)} color="#fff" />
               </View>
-              <CustomText style={styles.quickContactText}>Call</CustomText>
+              <CustomText style={styles.quickContactText}>Call Now</CustomText>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -296,13 +315,13 @@ const ContactPage = () => {
               onPress={handleWhatsApp}
               activeOpacity={0.8}
               accessible={true}
-              accessibilityLabel="Message on WhatsApp"
+              accessibilityLabel="Message for enrollment"
               accessibilityRole="button"
             >
-              <View style={[styles.quickIconContainer, { backgroundColor: '#128C7E' }]}> {/* Changed from bright green */}
+              <View style={[styles.quickIconContainer, { backgroundColor: '#128C7E' }]}>
                 <Icon name="chat" size={scale(20)} color="#fff" />
               </View>
-              <CustomText style={styles.quickContactText}>Message</CustomText>
+              <CustomText style={styles.quickContactText}>Inquire</CustomText>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -310,13 +329,13 @@ const ContactPage = () => {
               onPress={handleLocation}
               activeOpacity={0.8}
               accessible={true}
-              accessibilityLabel="View location"
+              accessibilityLabel="View counselling center location"
               accessibilityRole="button"
             >
-              <View style={[styles.quickIconContainer, { backgroundColor: '#1A73E8' }]}> {/* Changed from bright blue */}
+              <View style={[styles.quickIconContainer, { backgroundColor: '#1A73E8' }]}>
                 <Icon name="location-on" size={scale(20)} color="#fff" />
               </View>
-              <CustomText style={styles.quickContactText}>Location</CustomText>
+              <CustomText style={styles.quickContactText}>Visit Us</CustomText>
             </TouchableOpacity>
           </View>
         </View>
@@ -324,12 +343,13 @@ const ContactPage = () => {
         <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
 
 export default ContactPage
 
 const styles = StyleSheet.create({
+  // ...existing code...
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
@@ -360,7 +380,6 @@ const styles = StyleSheet.create({
     marginTop: scale(10),
     fontFamily: FONTS?.BOLD || 'System',
   },
-  // Add new styles for loading and error states
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -399,7 +418,6 @@ const styles = StyleSheet.create({
     fontSize: scale(16),
     fontFamily: FONTS?.BOLD || 'System',
   },
-  // Rest of the existing styles
   section: {
     paddingHorizontal: scale(16),
     paddingVertical: scale(20),
@@ -411,7 +429,6 @@ const styles = StyleSheet.create({
     marginBottom: scale(16),
     fontFamily: FONTS?.BOLD || 'System',
   },
-  // Improved responsive grid system for social buttons
   socialButtonsContainer: {
     width: '100%',
   },
@@ -421,7 +438,7 @@ const styles = StyleSheet.create({
     marginBottom: scale(10),
   },
   socialButtonWrapper: {
-    width: '48%', // More precise width for proper spacing
+    width: '48%',
   },
   socialButton: {
     flexDirection: 'row',
@@ -434,7 +451,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    minHeight: scale(48), // Ensure consistent height
+    minHeight: scale(48),
   },
   socialButtonText: {
     color: 'white',
@@ -442,7 +459,7 @@ const styles = StyleSheet.create({
     marginLeft: scale(8),
     fontWeight: 'bold',
     fontFamily: FONTS?.MEDIUM || 'System',
-    flexShrink: 1, // Allow text to shrink on smaller screens
+    flexShrink: 1,
     textAlign: 'center',
   },
   contactCard: {
@@ -538,5 +555,39 @@ const styles = StyleSheet.create({
   },
   smallLoader: {
     marginLeft: scale(5),
+  },
+  // New styles for service note and business hours
+  serviceNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F0F0FF',
+    borderRadius: scale(10),
+    padding: scale(15),
+    margin: scale(16),
+    borderLeftWidth: 4,
+    borderLeftColor: '#371981',
+  },
+  serviceNoteIcon: {
+    marginRight: scale(10),
+    marginTop: scale(2),
+  },
+  serviceNoteText: {
+    flex: 1,
+    fontSize: scale(14),
+    color: '#333',
+    lineHeight: scale(20),
+    fontFamily: FONTS?.REGULAR || 'System',
+  },
+  businessHoursContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: scale(12),
+    paddingHorizontal: scale(5),
+  },
+  businessHoursText: {
+    marginLeft: scale(8),
+    fontSize: scale(13),
+    color: '#666',
+    fontFamily: FONTS?.REGULAR || 'System',
   },
 });

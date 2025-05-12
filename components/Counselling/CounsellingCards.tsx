@@ -109,7 +109,8 @@ const PlanCard = ({ title, price, features, isPremium, isLocked = false, opensAt
         <View style={styles.lockedInfoContainer}>
           <Icon name="clock-outline" size={14} color="#FF9800" />
           <CustomText style={styles.opensAtText}>
-            Available from {formatOpeningDate()}
+            {/* Available from {formatOpeningDate()} */}
+            Will be available soon. Stay tuned!
           </CustomText>
         </View>
       )}

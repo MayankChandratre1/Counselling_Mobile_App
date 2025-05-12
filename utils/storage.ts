@@ -151,10 +151,11 @@ export const removeUserFavoirites = async (collegeId: string) => {
 export const logout = async (userId:string) => {
   try {
     // Call logout endpoint
+    const favourites = await getUserFavorites();
     const { error } = await secureRequest(
       `${config.USER_API}/logout`, 
       RequestMethod.POST,{
-        body:{userId}
+        body:{userId, favourites}
       }
     );
 
