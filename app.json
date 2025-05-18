@@ -1,4 +1,9 @@
 {
-  "name": "Sarathi",
-  "displayName": "Sarathi"
+  "name": "MHTCETCutoffByYashAradhye",
+  "displayName": "MHTCET Cutoff By Yash Aradhye",
+  "react-native": {
+    "android": {
+      "package": "com.yashclasses.counselling"
+    }
+  }
 }

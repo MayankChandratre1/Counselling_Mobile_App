@@ -23,6 +23,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444960940957:android:6401998934bd33d4bd8574",
+        "android_client_info": {
+          "package_name": "com.yashclasses.counselling"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTbw7kNrWmXtemlwYnHKq05f-kPAIvmMQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444960940957:android:3de0afe69eb54cafbd8574",
+        "android_client_info": {
+          "package_name": "com.yashclasses.sarathi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTbw7kNrWmXtemlwYnHKq05f-kPAIvmMQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

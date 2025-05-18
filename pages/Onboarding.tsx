@@ -450,9 +450,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#371981',
   },
   reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 6,
   },
   reviewName: {

@@ -16,6 +16,7 @@ import { checkVersion, CheckVersionResponse } from 'react-native-check-version';
 import CustomText from '../General/CustomText';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { FONTS } from '../../styles/typography';
+import VersionCheck from 'react-native-version-check';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,7 +34,7 @@ const ForcedUpdateWrapper: React.FC<ForcedUpdateWrapperProps> = ({
   bundleId,
   forceUpdateThreshold = 'major'
 }) => {
-  const [checking, setChecking] = useState<boolean>(true);
+  const [checking, setChecking] = useState<boolean>(false);
   const [updateInfo, setUpdateInfo] = useState<CheckVersionResponse | null>(null);
   const [updateNeeded, setUpdateNeeded] = useState<boolean>(false);
   const [forceUpdate, setForceUpdate] = useState<boolean>(false);
@@ -46,7 +47,20 @@ const ForcedUpdateWrapper: React.FC<ForcedUpdateWrapperProps> = ({
     try {
       setChecking(true);
       const currentVersion = NativeModules.RNDeviceInfo.appVersion;
-      const versionInfo = await checkVersion();
+      
+      console.log("Current version info:", currentVersion);
+      //check for 50 sec timeout then set it to false
+      const versionInfo = await checkVersion({
+        bundleId: "com.yashclasses.counselling"
+      });
+     
+      console.log("ODne version info:", versionInfo);
+      
+      const timeout = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Version check timed out'));
+        }, 50000);
+      })
 
       console.log("Version check:", currentVersion, versionInfo);
       setUpdateInfo(versionInfo);

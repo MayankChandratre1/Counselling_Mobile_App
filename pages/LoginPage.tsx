@@ -95,6 +95,9 @@ export const LoginScreen = ({navigation}:any) => {
     try {
       setLoading(true);
       const deviceId = await getDeviceId();
+
+      console.log("Url", `${config.USER_API}/login`);
+      
       
       const res = await fetch(`${config.USER_API}/login`, {
         method: 'POST',

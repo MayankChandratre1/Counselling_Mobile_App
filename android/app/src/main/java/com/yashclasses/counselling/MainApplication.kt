@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.yashclasses.counselling
 
 import android.app.Application
 import com.facebook.react.PackageList

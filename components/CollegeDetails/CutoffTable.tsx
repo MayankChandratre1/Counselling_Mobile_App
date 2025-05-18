@@ -1,7 +1,10 @@
-import { StyleSheet, View, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
+import { StyleSheet, View, ScrollView, Dimensions, TouchableOpacity, Modal, Text } from 'react-native'
 import React, { useState } from 'react'
 import CustomText from '../General/CustomText'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
+import Ionicons from 'react-native-vector-icons/Ionicons'
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
+import { categories } from '../../data/categories';
 
 // Get screen dimensions for responsive sizing
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -21,9 +24,136 @@ interface Cutoff {
   year?: number;
 }
 
+// Function to highlight the matching category in the text
+const HighlightedCategoryText = ({ fullCategory }: { fullCategory: string }) => {
+  // Find which category from our list is part of the full category string
+  const matchingCategory = categories.find(cat => 
+    fullCategory.includes(cat)
+  );
+
+  if (!matchingCategory) {
+    // No matching category found, return the original text
+    return <CustomText style={styles.categoryText}>{fullCategory || "N/A"}</CustomText>;
+  }
+
+  // Split the text to highlight just the matching part
+  const startIndex = fullCategory.indexOf(matchingCategory);
+  const endIndex = startIndex + matchingCategory.length;
+  
+  const beforeMatch = fullCategory.substring(0, startIndex);
+  const match = fullCategory.substring(startIndex, endIndex);
+  const afterMatch = fullCategory.substring(endIndex);
+
+  return (
+    <CustomText style={styles.categoryText}>
+      {beforeMatch}
+      <CustomText style={styles.highlightedCategory}>{match}</CustomText>
+      {afterMatch}
+    </CustomText>
+  );
+};
+
+// Legend modal component with improved scrolling and navigation arrows
+const LegendModal = ({ visible, onClose }: { visible: boolean, onClose: () => void }) => {
+  const [currentItemIndex, setCurrentItemIndex] = useState(0);
+  
+  const legendItems = [
+    { key: "G", label: "General", description: "Indicates a seat open to all candidates, regardless of gender." },
+    { key: "L", label: "Ladies", description: "Indicates a seat reserved specifically for female candidates." },
+    { key: "DEF", label: "Defence", description: "Indicates a seat reserved for candidates from defence backgrounds." },
+    { key: "PWD", label: "Persons with Disabilities", description: "Indicates a seat reserved for candidates with disabilities." },
+    { key: "H", label: "Home University", description: "Indicates a seat reserved for candidates who graduated from the same university as the admitting institution." },
+    { key: "O", label: "Other than Home University", description: "Indicates a seat open to candidates who graduated from a university different from the admitting institution." },
+    { key: "S", label: "State Level", description: "Indicates a seat open to candidates from within the state." },
+    { key: "AI", label: "All India Seat", description: "Indicates a seat open to candidates from all over India. (JEE)" },
+  ];
+  
+  const navigateNext = () => {
+    if (currentItemIndex < legendItems.length - 1) {
+      setCurrentItemIndex(currentItemIndex + 1);
+    }
+  };
+  
+  const navigatePrevious = () => {
+    if (currentItemIndex > 0) {
+      setCurrentItemIndex(currentItemIndex - 1);
+    }
+  };
+  
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View 
+          style={styles.modalContainer} 
+          onStartShouldSetResponder={() => true}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <CustomText style={styles.modalTitle}>Category Abbreviations</CustomText>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <MaterialIcons name="close" size={22} color="#371981" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.legendNavigation}>
+              <TouchableOpacity 
+                style={[styles.navButton, currentItemIndex === 0 && styles.navButtonDisabled]} 
+                onPress={navigatePrevious}
+                disabled={currentItemIndex === 0}
+              >
+                <MaterialIcons name="keyboard-arrow-left" size={24} color={currentItemIndex === 0 ? "#CCCCCC" : "#371981"} />
+              </TouchableOpacity>
+              <Text style={styles.navText}>{`${currentItemIndex + 1} / ${legendItems.length}`}</Text>
+              <TouchableOpacity 
+                style={[styles.navButton, currentItemIndex === legendItems.length - 1 && styles.navButtonDisabled]} 
+                onPress={navigateNext}
+                disabled={currentItemIndex === legendItems.length - 1}
+              >
+                <MaterialIcons name="keyboard-arrow-right" size={24} color={currentItemIndex === legendItems.length - 1 ? "#CCCCCC" : "#371981"} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.legendItem}>
+              <View style={{}}>
+                <CustomText style={styles.keyText}>{legendItems[currentItemIndex].key}</CustomText>
+              </View>
+              <View style={styles.legendTextContainer}>
+                <CustomText style={styles.legendLabel}>{legendItems[currentItemIndex].label}</CustomText>
+                <CustomText style={styles.legendDescription}>{legendItems[currentItemIndex].description}</CustomText>
+              </View>
+            </View>
+            
+            <View style={styles.legendPagination}>
+              {legendItems.map((_, index) => (
+                <TouchableOpacity 
+                  key={index} 
+                  style={[styles.paginationDot, index === currentItemIndex && styles.paginationDotActive]} 
+                  onPress={() => setCurrentItemIndex(index)}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
+
 const CutoffTable = ({cutoffs}: {
     cutoffs: Cutoff[]
 }) => {
+    const [isLegendVisible, setIsLegendVisible] = useState(false);
+    
     // If no cutoffs are available
     if (cutoffs.length === 0) {
       return (
@@ -68,6 +198,15 @@ const CutoffTable = ({cutoffs}: {
               CAP Round {roundNumber}
               {firstCutoff?.year && ` (${firstCutoff.year})`}
             </CustomText>
+            
+            {/* Help Button */}
+            <TouchableOpacity 
+              style={styles.helpButton}
+              onPress={() => setIsLegendVisible(true)}
+              accessibilityLabel="Show category abbreviations"
+            >
+              <Ionicons name="help-circle-outline" size={22} color="#371981" />
+            </TouchableOpacity>
           </View>
           
           <View style={styles.tableContainer}>
@@ -86,7 +225,7 @@ const CutoffTable = ({cutoffs}: {
             {cutoffs.map((cutoff, id) => (
               <View key={cutoff.id+"_"+id} style={styles.tableRow}>
                 <View style={styles.categoryCell}>
-                  <CustomText style={styles.categoryText}>{cutoff.Category || "N/A"}</CustomText>
+                  <HighlightedCategoryText fullCategory={cutoff.Category || "N/A"} />
                 </View>
                 <View style={styles.rankCell}>
                   <CustomText style={styles.rankText}>
@@ -107,7 +246,21 @@ const CutoffTable = ({cutoffs}: {
           <CustomText style={styles.footerText}>
             Data shown is from {yearDisplay} year's cutoffs
           </CustomText>
+          <TouchableOpacity 
+            style={styles.legendLink}
+            onPress={() => setIsLegendVisible(true)}
+          >
+            <CustomText style={styles.legendLinkText}>
+              What do G, L, O, H, S mean?
+            </CustomText>
+          </TouchableOpacity>
         </View>
+        
+        {/* Legend Modal */}
+        <LegendModal
+          visible={isLegendVisible}
+          onClose={() => setIsLegendVisible(false)}
+        />
       </ScrollView>
     );
 }
@@ -196,6 +349,10 @@ const styles = StyleSheet.create({
     fontSize: SCREEN_WIDTH < 360 ? 12 : 14,
     color: '#555',
     textAlign: 'left',
+  },
+  highlightedCategory: {
+    color: '#371981',
+    // fontWeight: 'bold',
   },
   rankCell: {
     flex: 1,
@@ -312,4 +469,119 @@ const styles = StyleSheet.create({
     color: '#888',
     fontStyle: 'italic',
   },
-});
+  // New styles for help button
+  helpButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    marginLeft: 8,
+  },
+  
+  // New styles for legend link
+  legendLink: {
+    alignSelf: 'center',
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  legendLinkText: {
+    color: '#371981',
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
+  
+  // Updated and new modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalContent: {
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#371981',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  legendNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  navButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navButtonDisabled: {
+    backgroundColor: '#F0F0F0',
+  },
+  navText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  legendItem: {
+    // flexDirection: 'row',
+    paddingVertical: 15,
+    paddingHorizontal: 5,
+    backgroundColor: '#F8F8FC',
+    borderRadius: 10,
+    marginBottom: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: '#371981',
+    minHeight: 100,
+  },
+  legendPagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 3,
+  },
+  paginationDotActive: {
+    backgroundColor: '#371981',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+})

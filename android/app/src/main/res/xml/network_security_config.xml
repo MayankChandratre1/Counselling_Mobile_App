@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust the system's pre-installed CAs -->
+            <certificates src="system" />
+            <!-- Trust user-added CAs (needed for debugging with tools like Charles Proxy) -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <domain-config>
+        <!-- Trust the Let's Encrypt certificates on your domains -->
+        <domain includeSubdomains="true">college.yashclasses.in</domain>
+        <domain includeSubdomains="true">user.yashclasses.in</domain>
+        <domain includeSubdomains="true">api.college.yashclasses.in</domain>
+        <domain includeSubdomains="true">api.user.yashclasses.in</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- Enable user certificates for these domains (important for debug) -->
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

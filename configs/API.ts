@@ -1,7 +1,7 @@
 const config = {
-    COLLEGE_API: 'http://56.228.80.67:3002/api',
-    USER_API: "http://13.49.70.4:3006/api/user",
-    PAYMENT_API: "http://13.49.70.4:3006/api/payment",
+    COLLEGE_API: 'https://api.college.yashclasses.in/api',
+    USER_API: "https://api.user.yashclasses.in/api/user",
+    PAYMENT_API: "https://api.user.yashclasses.in/api/payment",
 }
 // const config = {
 //     COLLEGE_API: 'http://192.168.1.4:3002/api',

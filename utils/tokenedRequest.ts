@@ -26,7 +26,9 @@ export const secureRequest = async <T>(
   try {
     // Get token from storage
     const userData = await AsyncStorage.getItem('token');
+    const userPlanData = await AsyncStorage.getItem('user');
     const token = userData ? JSON.parse(userData).token : null;
+    console.log("Logout token"+token);
     
     
     const headers = {
